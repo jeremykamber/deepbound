@@ -76,10 +76,12 @@ CRITICAL REQUIREMENTS:
 
 Return ONLY valid JSON without explanatory text or markdown code blocks.`;
 
-        const user = `Create 3 diverse personas for pricing evaluation based on: "${personaDescription}"
+        const user = `Create 3 diverse personas for pricing evaluation based on the following ideal customer profile description: "${personaDescription}"
+
+You MUST make sure above all that your personas fall within and match that ideal customer profile.
 
 DIVERSITY CRITERIA:
-1. Different financial profiles: one cost-conscious, one growth-focused, one enterprise/scale-focused
+1. Different financial profiles
 2. Different industries or roles where applicable
 3. Different approaches to technology adoption and ROI calculation
 4. Different communication styles and decision-making speeds

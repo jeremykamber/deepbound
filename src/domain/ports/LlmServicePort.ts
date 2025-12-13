@@ -1,7 +1,6 @@
 import { Persona } from "../entities/Persona";
 
 export interface LlmServicePort {
-    generateInitialPersonas(personaDescription: string): Promise<Persona[]>;
-    generatePersonaBackstory(personaDescription: string): Promise<string>;
-    generatePersonaBackstory(persona: Persona): Promise<string>;
+    generateInitialPersonas(icp: string): Promise<Persona[]>;
+    generatePersonaBackstory(persona: Persona, icp: string): Promise<string>;
 }

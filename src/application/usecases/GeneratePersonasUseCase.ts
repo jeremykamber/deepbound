@@ -10,7 +10,7 @@ export class GeneratePersonasUseCase {
         await Promise.all(
             personas.map(async (persona) => {
                 persona.backstory =
-                    await this.llmService.generatePersonaBackstory(persona);
+                    await this.llmService.generatePersonaBackstory(persona, personaDescription);
             }),
         );
         return personas;

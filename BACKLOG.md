@@ -20,7 +20,7 @@ This project is grounded in **"Deep Binding of Language Model Virtual Personas"*
 
 ### Core Persona Generation Features
 - [x] **Improved LLM Prompts** - Initial persona generation + backstory prompts (Deep Binding research-backed)
-- [x] **Extended Backstory Generation** - Multi-turn interview approach (5000+ tokens per backstory)
+- [x] **Extended Backstory Generation** - 10-part ultra-detailed interview (8000+ tokens per backstory)
 - [x] **GeneratePersonasUseCase** - Orchestrates persona and backstory generation
 - [x] **OpenRouterAdapter** - Implements LLM service port with research-backed prompts
 - [x] **generatePersonasAction** - Server action wiring use case to frontend

@@ -1,20 +1,20 @@
 import { TaskRepositoryPort } from '../../domain/ports/TaskRepositoryPort'
 import { Task } from '../../domain/entities/Task'
+import { DatabaseServicePort } from '../../domain/ports/DatabaseServicePort'
 
 export class TaskRepositoryImpl implements TaskRepositoryPort {
-  private tasks: Task[] = []
+  constructor(private db: DatabaseServicePort) { }
 
   async saveTask(task: Task): Promise<void> {
-    this.tasks.push(task)
+    await this.db.insert('tasks', task)
   }
   async getTasks(): Promise<Task[]> {
-    return this.tasks
+    return await this.db.findAll('tasks')
   }
   async updateTask(task: Task): Promise<void> {
-    const idx = this.tasks.findIndex(t => t.id === task.id)
-    if (idx !== -1) this.tasks[idx] = task
+    await this.db.update('tasks', task.id, task)
   }
   async deleteTask(id: string): Promise<void> {
-    this.tasks = this.tasks.filter(t => t.id !== id)
+    await this.db.delete('tasks', id)
   }
 }

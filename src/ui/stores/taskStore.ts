@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { ManageTasksUseCase } from '../../application/usecases/ManageTasksUseCase'
 import { TaskRepositoryImpl } from '../../infrastructure/adapters/TaskRepositoryImpl'
+import { BrowserDatabaseService } from '../../infrastructure/services/BrowserDatabaseService'
 import { Task } from '../../domain/entities/Task'
 
-const repo = new TaskRepositoryImpl()
+const db = new BrowserDatabaseService()
+const repo = new TaskRepositoryImpl(db)
 const useCase = new ManageTasksUseCase(repo)
 
 interface TaskState {

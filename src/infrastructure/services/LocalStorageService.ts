@@ -21,6 +21,9 @@ export class LocalStorageService implements DatabaseServicePort {
     }
     return null
   }
+  async findAll(table: string): Promise<any[]> {
+    return JSON.parse(localStorage.getItem(table) || '[]')
+  }
   async delete(table: string, id: string): Promise<void> {
     let items = JSON.parse(localStorage.getItem(table) || '[]')
     items = items.filter((item: any) => item.id !== id)

@@ -107,7 +107,7 @@ Make them realistic, specific, and ready for deep backstory generation. JSON arr
                             p.id ??
                             p.uuid ??
                             p.name?.toLowerCase().replace(/\s+/g, "-") +
-                                `-${idx}`,
+                            `-${idx}`,
                         name: p.name ?? "Unknown",
                         age:
                             typeof p.age === "number"
@@ -119,18 +119,18 @@ Make them realistic, specific, and ready for deep backstory generation. JSON arr
                         interests: Array.isArray(p.interests)
                             ? p.interests
                             : typeof p.interests === "string"
-                              ? [p.interests]
-                              : [],
+                                ? [p.interests]
+                                : [],
                         goals: Array.isArray(p.goals)
                             ? p.goals
                             : typeof p.goals === "string"
-                              ? [p.goals]
-                              : [],
+                                ? [p.goals]
+                                : [],
                         personalityTraits: Array.isArray(p.personalityTraits)
                             ? p.personalityTraits
                             : p.traits && Array.isArray(p.traits)
-                              ? p.traits
-                              : [],
+                                ? p.traits
+                                : [],
                         backstory: p.backstory ?? p.story ?? undefined,
                     }) as Persona,
             );
@@ -255,5 +255,30 @@ Now write 2-3 final paragraphs that:
             .replace(/```json\n?/i, "")
             .replace(/```/g, "")
             .trim();
+    }
+
+    async decideNextStep(): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    async analyzeStaticPage(): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    async *analyzeStaticPageStream(): AsyncIterable<string> {
+        throw new Error("Method not implemented.");
+    }
+    async extractInsights(): Promise<any> {
+        throw new Error("Method not implemented.");
+    }
+    async isPricingVisible(): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    async isPricingVisibleInHtml(): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    async chatWithPersona(): Promise<string> {
+        throw new Error("Method not implemented.");
+    }
+    async *chatWithPersonaStream(): AsyncIterable<string> {
+        throw new Error("Method not implemented.");
     }
 }

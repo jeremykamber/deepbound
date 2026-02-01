@@ -1,0 +1,69 @@
+"use server";
+import { createStreamableValue } from "@ai-sdk/rsc";
+
+import { ParsePricingPageUseCase } from "@/application/usecases/ParsePricingPageUseCase";
+import { RemotePlaywrightAdapter } from "@/infrastructure/adapters/RemotePlaywrightAdapter";
+import { Persona } from "@/domain/entities/Persona";
+import { PricingAnalysis } from "@/domain/entities/PricingAnalysis";
+import { LlmServiceImpl } from "@/infrastructure/adapters/LlmServiceImpl";
+import { cancellationManager } from "@/infrastructure/RequestCancellationManager";
+
+export async function analyzePricingPageAction(
+    url: string,
+    personas: Persona[],
+    requestId?: string,
+) {
+    const id = requestId || `pricing-${Date.now()}`;
+    const abortController = cancellationManager.createRequest(id);
+    const abortSignal = abortController.signal;
+    const stream = createStreamableValue<any>({ step: "SETTING_UP_AGENT", requestId: id });
+
+    (async () => {
+        try {
+            // Check if already cancelled
+            if (abortSignal.aborted) {
+                stream.done({ step: "CANCELLED", requestId: id });
+                return;
+            }
+
+            // Instantiate dependencies
+            const browserService = RemotePlaywrightAdapter.createFromEnv();
+            const llmService = LlmServiceImpl.createFromEnv("openrouter"); // Defaulting to OpenRouter, can be configured via env
+            const useCase = new ParsePricingPageUseCase(
+                browserService,
+                llmService,
+            );
+
+            // Call use case with progress callback and abort signal
+            const analyses = await useCase.execute(
+                url,
+                personas,
+                (progress) => {
+                    // Check if cancelled before sending update
+                    if (!abortSignal.aborted) {
+                        stream.update({ ...progress, requestId: id });
+                    }
+                },
+                abortSignal,
+            );
+
+            if (!abortSignal.aborted) {
+                stream.done({ step: "DONE", analyses, requestId: id });
+            } else {
+                stream.done({ step: "CANCELLED", requestId: id });
+            }
+        } catch (error) {
+            if (abortSignal.aborted) {
+                console.log("Request was cancelled");
+                stream.done({ step: "CANCELLED", requestId: id });
+            } else {
+                console.error("Error analyzing pricing page:", error);
+                stream.done({ step: "ERROR", error: (error as Error).message, requestId: id });
+            }
+        } finally {
+            cancellationManager.clearRequest(id);
+        }
+    })();
+
+    return { streamData: stream.value, requestId: id };
+}

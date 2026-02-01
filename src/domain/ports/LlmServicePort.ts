@@ -1,7 +1,134 @@
 import { Persona } from "../entities/Persona";
+import { PricingAnalysis } from "../entities/PricingAnalysis";
+
+export type AgentAction =
+    | { type: "CLICK"; selector: string; reasoning: string }
+    | { type: "TYPE"; selector: string; text: string; reasoning: string }
+    | { type: "FINISH"; report: string };
 
 export interface LlmServicePort {
+    /**
+     * Generates an array of initial personas based on the provided persona description.
+     * @param personaDescription - A textual description of the persona(s) to generate.
+     * @returns A promise that resolves to an array of Persona objects.
+     */
     generateInitialPersonas(personaDescription: string): Promise<Persona[]>;
-    generatePersonaBackstory(personaDescription: string): Promise<string>;
-    generatePersonaBackstory(persona: Persona): Promise<string>;
+
+    /**
+     * Generates personas based on a description (streaming version).
+     * Yields raw tokens of the JSON array.
+     */
+    generateInitialPersonasStream(personaDescription: string): AsyncIterable<Partial<Persona>[]>;
+
+    /**
+     * Generates a deep narrative backstory for a persona.
+     * @param personaOrDescription - The Persona object or its description.
+     * @param onProgress - Optional callback for tracking progress (part X of totalParts).
+     * @returns A promise that resolves to the persona's backstory.
+     */
+    generatePersonaBackstory(
+        personaOrDescription: Persona | string,
+        onProgress?: (part: number, totalParts: number) => void,
+    ): Promise<string>;
+
+    /**
+     * Generates a deep narrative backstory for a persona (streaming version).
+     * Yields raw tokens of the backstory text.
+     */
+    generatePersonaBackstoryStream(
+        personaOrDescription: Persona | string,
+    ): AsyncIterable<string>;
+
+    /**
+     * The Brain looks at the screenshot and history, then decides the next move.
+     * @param persona The Persona object representing the agent.
+     * @param screenshotBase64 A base64-encoded screenshot of the current view.
+     * @param actionHistory An array of strings representing the history of actions taken so far.
+     * @returns A promise that resolves to the next AgentAction to be taken.
+     */
+    decideNextStep(
+        persona: Persona,
+        screenshotBase64: string,
+        actionHistory: string[],
+    ): Promise<AgentAction>;
+
+    /**
+     * Analyze a static view of the Pricing Page feature.
+     * @param persona The Persona object representing the agent.
+     * @param screenshotBase64 A base64-encoded screenshot of the pricing page.
+     * @returns A promise that resolves to a PricingAnalysis of the static page, including gut reactions.
+     */
+    analyzeStaticPage(
+        persona: Persona,
+        screenshotBase64: string,
+    ): Promise<PricingAnalysis>;
+
+    /**
+     * Analyze a static view of the Pricing Page feature (streaming version).
+     * @param persona The Persona object representing the agent.
+     * @param screenshotBase64 A base64-encoded screenshot of the pricing page.
+     * @returns An AsyncIterable extending string pieces of the JSON response.
+     */
+    analyzeStaticPageStream(
+        persona: Persona,
+        screenshots: string[],
+    ): AsyncIterable<string>;
+
+    /**
+     * Extracts structured insights (gut reaction, scores, risks) from raw thoughts.
+     * @param persona The persona who had the thoughts.
+     * @param rawThoughts The raw stream-of-consciousness text.
+     */
+    extractInsights(
+        persona: Persona,
+        rawThoughts: string,
+    ): Promise<Partial<PricingAnalysis>>;
+
+    /**
+     * Checks if pricing elements are visible in a screenshot.
+     */
+    isPricingVisible(screenshotBase64: string): Promise<boolean>;
+
+    /**
+     * Checks if pricing elements are visible in the provided HTML/text.
+     */
+    isPricingVisibleInHtml(html: string): Promise<boolean>;
+
+    /**
+     * Chat with a persona about their analysis.
+     * @param persona The persona to chat with.
+     * @param analysis The analysis they performed.
+     * @param message The user's message.
+     * @param history The chat history.
+     * @returns A promise that resolves to the persona's response.
+     */
+    /**
+     * Chat with a persona about their analysis (streaming version).
+     * @param persona The persona to chat with.
+     * @param analysis The analysis they performed.
+     * @param message The user's message.
+     * @param history The chat history.
+     * @returns An AsyncIterable extending string pieces.
+     */
+    chatWithPersona(
+        persona: Persona,
+        analysis: PricingAnalysis | null,
+        message: string,
+        history: { role: "user" | "assistant"; content: string }[],
+    ): Promise<string>;
+
+    /**
+     * Chat with a persona about their analysis (streaming version).
+     * @param persona The persona to chat with.
+     * @param analysis The analysis they performed (optional if pre-testing).
+     * @param message The user's message.
+     * @param history The chat history.
+     * @returns An AsyncIterable extending string pieces.
+     */
+    chatWithPersonaStream(
+        persona: Persona,
+        analysis: PricingAnalysis | null,
+        message: string,
+        history: { role: "user" | "assistant"; content: string }[],
+    ): AsyncIterable<string>;
 }

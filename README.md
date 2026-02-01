@@ -1,14 +1,14 @@
-# AI Automated User Testing Platform
+# DeepBound: AI-Powered User Testing
 
-This project is an AI-powered platform designed to automate user testing for small businesses and early-stage startups. Our system generates realistic user personas based on your company's Ideal Customer Profile (ICP), runs these personas through your product or specific features end-to-end, and produces detailed reports on each AI agent’s thought processes, emotions, pain points, and actionable insights at every step.
+This project is an AI-powered platform designed to automate user testing for small businesses and early-stage startups. Our system creates realistic personas based on who your customers are, runs them through your website or app, and produces simple reports on what they thought, how they felt, and what was confusing for them.
 
-We position ourselves as a faster, more affordable, and slightly lower-resolution alternative to traditional user testing—making high-quality UX feedback accessible to startups and small teams.
+We make high-quality user feedback accessible to everyone by being faster and more affordable than traditional user testing.
 
 ## Key Features
 
-- **Persona Generation:** Create lifelike user personas from your ICP.
-- **Automated Testing:** Run AI agents through your product or features.
-- **Insightful Reporting:** Receive detailed feedback on agent experiences, including thoughts, emotions, pain points, and actionable recommendations.
+- **Persona Generation:** Create realistic personas based on your product.
+- **Automated Testing:** Run simulated personas through your website or app.
+- **Insightful Reporting:** Get clear feedback on their experience, including thoughts, emotions, and things to fix.
 
 ## Tech Stack
 

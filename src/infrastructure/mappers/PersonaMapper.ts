@@ -15,6 +15,18 @@ export function dbToPersona(db: any): Persona {
     goals: db.goals || [],
     personalityTraits: db.personalityTraits || [],
     backstory: db.backstory,
+    // Psychometric and Aesthetic properties
+    conscientiousness: db.conscientiousness ?? 50,
+    neuroticism: db.neuroticism ?? 50,
+    openness: db.openness ?? 50,
+    extraversion: db.extraversion ?? 50,
+    agreeableness: db.agreeableness ?? 50,
+    cognitiveReflex: db.cognitiveReflex ?? 50,
+    technicalFluency: db.technicalFluency ?? 50,
+    economicSensitivity: db.economicSensitivity ?? 50,
+    designStyle: db.designStyle ?? "Minimalist",
+    favoriteColors: db.favoriteColors || [],
+    livingEnvironment: db.livingEnvironment ?? "Organized habitat",
   }
 }
 
@@ -30,6 +42,18 @@ export function personaToDb(entity: Persona): any {
     goals: entity.goals,
     personalityTraits: entity.personalityTraits,
     backstory: entity.backstory,
+    // Psychometric and Aesthetic properties
+    conscientiousness: entity.conscientiousness,
+    neuroticism: entity.neuroticism,
+    openness: entity.openness,
+    extraversion: entity.extraversion,
+    agreeableness: entity.agreeableness,
+    cognitiveReflex: entity.cognitiveReflex,
+    technicalFluency: entity.technicalFluency,
+    economicSensitivity: entity.economicSensitivity,
+    designStyle: entity.designStyle,
+    favoriteColors: entity.favoriteColors,
+    livingEnvironment: entity.livingEnvironment,
   }
 }
 

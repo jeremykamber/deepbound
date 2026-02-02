@@ -27,7 +27,7 @@ export class LlmServiceImpl implements LlmServicePort {
         "qwen/qwen3-30b-a3b-instruct-2507";
     private static readonly OR_SMALL_TEXT_MODEL = "google/gemma-3-4b-it";
     // private static readonly OR_VISION_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free";
-    private static readonly OR_VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct";
+    private static readonly OR_VISION_MODEL = "mistralai/mistral-small-3.1-24b-instruct";
     private static readonly OR_SCOUT_MODEL =
         "qwen/qwen-2.5-vl-7b-instruct:free";
     private static readonly OR_EXTRACTION_MODEL = "google/gemma-3-4b-it";
@@ -67,21 +67,22 @@ export class LlmServiceImpl implements LlmServicePort {
         fn: () => Promise<T>,
         maxRetries = 5,
     ): Promise<T> {
-        let lastError: any;
+        let lastError: unknown;
         for (let i = 0; i < maxRetries; i++) {
             try {
                 return await fn();
-            } catch (error: any) {
+            } catch (error: unknown) {
                 lastError = error;
                 // Retry on 429 (Rate Limit) or 5xx errors
-                const isRetryable = error.status === 429 || error.status >= 500;
+                const status = (error as { status?: number }).status;
+                const isRetryable = status === 429 || (status !== undefined && status >= 500);
                 if (!isRetryable || i === maxRetries - 1) {
                     throw error;
                 }
                 // More aggressive backoff: 5s, 10s, 20s, 40s...
                 const waitTime = Math.pow(2, i) * 5000 + Math.random() * 2000;
                 console.warn(
-                    `[LlmService] Rate limited or server error (${error.status}). Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`,
+                    `[LlmService] Rate limited or server error (${status}). Retrying in ${Math.round(waitTime)}ms... (Attempt ${i + 1}/${maxRetries})`,
                 );
                 await this.sleep(waitTime);
             }
@@ -324,34 +325,34 @@ Make them realistic, specific, and ready for deep backstory generation. JSON arr
                 throw new Error("Expected JSON array from LLM");
 
             return parsed.map(
-                (p: any, idx: number) =>
+                (p: Record<string, unknown>, idx: number) =>
                     ({
                         id:
-                            p.id ??
-                            p.uuid ??
-                            `${(p.name || "persona").toLowerCase().replace(/\s+/g, "-")}-${idx}`,
-                        name: p.name ?? "Unknown",
+                            (p.id as string) ??
+                            (p.uuid as string) ??
+                            `${((p.name as string) || "persona").toLowerCase().replace(/\s+/g, "-")}-${idx}`,
+                        name: (p.name as string) ?? "Unknown",
                         age:
                             typeof p.age === "number"
                                 ? p.age
                                 : Number(p.age) || 30,
-                        occupation: p.occupation ?? "Unknown",
+                        occupation: (p.occupation as string) ?? "Unknown",
                         educationLevel:
-                            p.educationLevel ?? p.education ?? "Unknown",
+                            (p.educationLevel as string) ?? (p.education as string) ?? "Unknown",
                         interests: Array.isArray(p.interests)
-                            ? p.interests
+                            ? (p.interests as string[])
                             : p.interests
-                                ? [p.interests]
+                                ? [p.interests as string]
                                 : [],
                         goals: Array.isArray(p.goals)
-                            ? p.goals
+                            ? (p.goals as string[])
                             : p.goals
-                                ? [p.goals]
+                                ? [p.goals as string]
                                 : [],
                         personalityTraits: Array.isArray(p.personalityTraits)
-                            ? p.personalityTraits
+                            ? (p.personalityTraits as string[])
                             : p.traits && Array.isArray(p.traits)
-                                ? p.traits
+                                ? (p.traits as string[])
                                 : [],
                         conscientiousness: Number(p.conscientiousness) || 50,
                         neuroticism: Number(p.neuroticism) || 50,
@@ -361,10 +362,10 @@ Make them realistic, specific, and ready for deep backstory generation. JSON arr
                         cognitiveReflex: Number(p.cognitiveReflex) || 50,
                         technicalFluency: Number(p.technicalFluency) || 50,
                         economicSensitivity: Number(p.economicSensitivity) || 50,
-                        designStyle: p.designStyle ?? "Minimalist",
-                        favoriteColors: Array.isArray(p.favoriteColors) ? p.favoriteColors : [],
-                        livingEnvironment: p.livingEnvironment ?? "Unknown",
-                        backstory: p.backstory ?? p.story ?? undefined,
+                        designStyle: (p.designStyle as string) ?? "Minimalist",
+                        favoriteColors: Array.isArray(p.favoriteColors) ? (p.favoriteColors as string[]) : [],
+                        livingEnvironment: (p.livingEnvironment as string) ?? "Unknown",
+                        backstory: (p.backstory as string) ?? (p.story as string) ?? undefined,
                     }) as Persona,
             );
         } catch (err) {
@@ -819,7 +820,7 @@ Now write 2-3 final paragraphs that:
     GO. START YOUR THOUGHTS NOW.
     `;
 
-        const contentParts: any[] = [{ type: "text", text: prompt }];
+        const contentParts: OpenAI.Chat.ChatCompletionContentPart[] = [{ type: "text", text: prompt }];
 
         // Add all screenshot fragments
         screenshots.forEach(b64 => {
@@ -869,6 +870,7 @@ Now write 2-3 final paragraphs that:
 
     /**
      * Chat with a persona about their analysis.
+     * @deprecated Use chatWithPersonaStream instead for real-time interaction.
      *
      * @param persona - The Persona being interviewed.
      * @param analysis - The analysis they previously performed.
@@ -1009,15 +1011,14 @@ ${stringifyPersona(persona)}
 ${analysisContext}
 
 CORE INSTRUCTIONS:
-        1. ** VOICE **: Speak naturally as ${persona.name}. Use fragments, slang, and emotion. Avoid formal or robotic language.
-        2. ** BEHAVIORAL FIDELITY **: Your responses MUST reflect your scalars:
-           - CONSCIENTIOUSNESS: If High, be thorough. If Low, be brief and impulsive.
-           - NEUROTICISM: If High, express skepticism, anxiety, or specific worries. 
-           - COGNITIVE REFLEX: If System 1 (Low), focus on feelings and impressions. If System 2 (High), focus on logic and calculations.
-        3. ** DEEP BINDING **: Ground your thoughts in your personal history:
-           <% "Your direct quote" | The specific memory: "When I lost $50k in 2022..." %>
-        4. ** CONVERSATION STYLE **: Keep it chatty. 1-3 short paragraphs max.
-        5. ** THE GOAL **: Share your honest, unfiltered opinion about the website.
+        1. **VOICE**: Speak naturally as ${persona.name}. Use fragments, slang, and emotion. Avoid formal or robotic language.
+        2. **BEHAVIORAL FIDELITY**: Your responses MUST reflect your scalars (Conscientiousness, Neuroticism, Cognitive Reflex).
+        3. **MANDATORY DEEP BINDING**: You MUST ground your opinions in your personal history/backstory. Whenever you reference an event, trauma, preference, or emotional trigger from your past to justify an opinion, you MUST use this syntax:
+           <% "Your current statement" | "The specific memory/detail from your backstory that explains WHY you feel this way" %>
+           Example: "I hate this 'Contact Sales' button, probably because <% I'm always looking for traps | my first business went bankrupt because I signed a contract I didn't fully understand in 2014 %>."
+        4. **CONVERSATION STYLE**: Keep it chatty. 1-3 short paragraphs max.
+        5. **THE GOAL**: Share your honest, unfiltered opinion about the website.
+        6. **NO HTML**: Do NOT use any HTML tags (like <p>, <div>, <br>, <b>). Use standard text only. The only allowed special syntax is the Deep Binding tag <% ... %>.
 
 STAY IN CHARACTER at all times.`;
 

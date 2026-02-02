@@ -12,7 +12,7 @@ export const GazeOverlay: React.FC<GazeOverlayProps> = ({ screenshotBase64, gaze
     <div className="relative w-full overflow-hidden rounded-lg border border-slate-200 shadow-xl group">
       {/* The base screenshot */}
       <img
-        src={`data:image/jpeg;base64,${screenshotBase64}`}
+        src={screenshotBase64.startsWith('http') || screenshotBase64.startsWith('/') ? screenshotBase64 : `data:image/jpeg;base64,${screenshotBase64}`}
         alt="Pricing Page Analysis"
         className="w-full h-auto block"
       />

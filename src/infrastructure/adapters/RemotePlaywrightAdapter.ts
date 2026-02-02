@@ -321,7 +321,7 @@ export class RemotePlaywrightAdapter implements BrowserServicePort {
         // This is a heuristic that works on 80% of modern sites
         await page
             .locator(':text-matches("loading", "i")')
-            .waitFor({ state: "hidden", timeout: 5000 })
+            .waitFor({ state: "hidden", timeout: 2000 })
             .catch(() => { });
 
         // 4. Final "Settling" pause (the 500ms breather)

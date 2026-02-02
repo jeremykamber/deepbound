@@ -6,7 +6,7 @@ This project is grounded in the research paper **"Deep Binding of Language Model
 
 - **Narrative Identity**: Personas internalize life stories. Detailed backstories lead to deeper binding into decision-making patterns.
 - **Consistency Matters**: There is a 54% improvement in persona fidelity when using an LLM-as-critic to validate backstory coherence.
-- **Length Matters**: We aim for 10x longer backstories (2500+ tokens) compared to single-question approaches.
+- **Length Matters**: We aim for 2,500+ word backstories to ensure deep persona binding.
 - **Financial Context**: For pricing evaluation, backstories MUST reveal:
   - Spending patterns
   - ROI calculations

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Logo from "@/ui/components/Logo";
 
 export default function MarketingLayout({
   children,
@@ -12,12 +13,8 @@ export default function MarketingLayout({
       <header className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/60 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="size-8 rounded-lg bg-primary/20 border border-primary/20 flex items-center justify-center transition-colors duration-200 group-hover:bg-primary/30">
-              <BrainCircuit className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-base font-bold tracking-tight text-foreground uppercase tracking-widest text-[12px]">
-              Dashboard
-            </span>
+            <Logo size={20} />
+            <span className="text-base font-bold tracking-widest text-white uppercase text-[12px]">DeepBound</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-[10px] font-bold text-muted-foreground/60 hover:text-white transition-colors tracking-widest uppercase">How it works</Link>
@@ -38,7 +35,7 @@ export default function MarketingLayout({
         <div className="container mx-auto px-6 max-w-7xl flex flex-col md:flex-row justify-between items-start gap-16">
           <div className="space-y-6 max-w-sm">
             <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-primary" />
+              <Logo size={20} />
               <span className="text-base font-bold tracking-widest text-white uppercase text-[12px]">DeepBound</span>
             </div>
             <p className="text-xs text-muted-foreground/40 leading-relaxed font-medium">

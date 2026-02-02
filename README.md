@@ -1,22 +1,34 @@
-# AI Automated User Testing Platform
+# DeepBound: AI-Powered User Testing
 
-This project is an AI-powered platform designed to automate user testing for small businesses and early-stage startups. Our system generates realistic user personas based on your company's Ideal Customer Profile (ICP), runs these personas through your product or specific features end-to-end, and produces detailed reports on each AI agent’s thought processes, emotions, pain points, and actionable insights at every step.
+Automate user testing with high-fidelity AI personas. DeepBound creates realistic personas, runs them through your website/app, and produces deep behavioral insights.
 
-We position ourselves as a faster, more affordable, and slightly lower-resolution alternative to traditional user testing—making high-quality UX feedback accessible to startups and small teams.
+## 🚀 Quick Start
 
-## Key Features
+1. **Install Dependencies**
+   ```bash
+   bun install
+   ```
+2. **Set Environment Variables**
+   Create a `.env` file with:
+   - `OPENROUTER_API_KEY`
+3. **Run Dev Server**
+   ```bash
+   bun dev
+   ```
 
-- **Persona Generation:** Create lifelike user personas from your ICP.
-- **Automated Testing:** Run AI agents through your product or features.
-- **Insightful Reporting:** Receive detailed feedback on agent experiences, including thoughts, emotions, pain points, and actionable recommendations.
+## 📖 Documentation Hub
 
-## Tech Stack
+- **[Architecture Guide](./docs/ARCHITECTURE.md)**: Rules for the Hexagonal MVP structure.
+- **[Code Examples](./docs/EXAMPLES.md)**: Gold-standard implementations for common tasks.
+- **[Design System](./DESIGN_SYSTEM.md)**: UI/UX principles and CSS tokens.
+- **[Research Foundation](./docs/RESEARCH.md)**: The "Deep Binding" science behind our personas.
+- **[Product Backlog](./BACKLOG.md)**: Roadmap, current sprints, and completed tasks.
 
-- Next.js (TypeScript)
-- Tailwind CSS
-- Zustand (state management)
-- shadcn/ui (UI components)
-- Hexagonal Architecture
+## 🛠 Tech Stack
 
-See `src/AI_README.md` for architecture and usage details.
-
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui
+- **State**: Zustand (for global state) / React Server Actions (for data)
+- **Architecture**: Hexagonal (Domain-Driven Design)
+- **Runtime**: Bun

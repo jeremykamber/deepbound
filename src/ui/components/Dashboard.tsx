@@ -1,280 +1,296 @@
 'use client'
+
 import React, { useState } from 'react'
-import { useTransition } from 'react'
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, Zap, TrendingUp, Loader, ChevronDown } from 'lucide-react'
-import { generatePersonasAction } from '@/actions/GeneratePersonasAction'
+import { BrainCircuit, Server, Globe, Eye, Zap, Loader2 } from 'lucide-react'
+import { Card } from "@/components/ui/card"
 import { Persona } from '@/domain/entities/Persona'
+import { PricingAnalysis } from '@/domain/entities/PricingAnalysis'
+import { MOCK_PERSONAS } from '@/domain/entities/MockPersonas'
+import { MOCK_ANALYSES } from '@/domain/entities/MockAnalyses'
+
+// Shared Components
+import { ThoughtfulDialog } from './dashboard/shared/ThoughtfulDialog'
+import { RefinedStep, Step } from './dashboard/shared/RefinedStep'
+
+// Hooks
+import { usePersonaFlow } from '../hooks/usePersonaFlow'
+import { useAnalysisFlow } from '../hooks/useAnalysisFlow'
+
+// Views
+import { CustomerInputView } from './dashboard/views/CustomerInputView'
+import { PersonaGridView } from './dashboard/views/PersonaGridView'
+import { AnalysisResultView } from './dashboard/views/AnalysisResultView'
+import { PersonaChat } from './PersonaChat'
 
 export const Dashboard: React.FC = () => {
-  const [customerProfile, setCustomerProfile] = useState('')
-  const [personas, setPersonas] = useState<Persona[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('input')
-  const [expandedBackstory, setExpandedBackstory] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [activeChat, setActiveChat] = useState<{ persona: Persona; analysis: PricingAnalysis | null } | null>(null)
 
-  const handleGeneratePersonas = () => {
-    if (!customerProfile.trim()) return
-    
-    setError(null)
-    startTransition(async () => {
-      try {
-        const result = await generatePersonasAction(customerProfile)
-        setPersonas(result)
-        setActiveTab('results')
-      } catch (err) {
-        setError((err as Error).message)
-      }
-    })
+  const {
+    customerProfile,
+    setCustomerProfile,
+    personas,
+    setPersonas,
+    error: personaError,
+    isPending: isPersonaPending,
+    personaProgress,
+    handleGeneratePersonas,
+    handleCancel: cancelPersonaGeneration
+  } = usePersonaFlow(() => setActiveTab('personas'))
+
+  const {
+    pricingUrl,
+    setPricingUrl,
+    analyses,
+    setAnalyses,
+    error: analysisError,
+    isPending: isAnalysisPending,
+    analysisProgress,
+    predictingGazeId,
+    handleAnalyzePricing,
+    handlePredictGaze,
+    handleCancel: cancelAnalysis,
+    combinedAnalysisStream
+  } = useAnalysisFlow(() => setActiveTab('analysis'))
+
+  const handleUseExamples = () => {
+    setPersonas(MOCK_PERSONAS)
+    setPricingUrl('https://www.gumroad.com/pricing')
+    setActiveTab('personas')
   }
 
+  const handleUseMockAnalysis = () => {
+    setPersonas(MOCK_PERSONAS)
+    setPricingUrl('https://linear.app/pricing')
+    setAnalyses(Object.values(MOCK_ANALYSES))
+    setActiveTab('analysis')
+  }
+
+  // Progress Calculation
+  const getAnalysisProgressPercentage = () => {
+    if (!analysisProgress) return 0
+    switch (analysisProgress.step) {
+      case 'STARTING': return 10
+      case 'OPENING_PAGE': return 30
+      case 'FINDING_PRICING': return 65
+      case 'THINKING': return 90
+      case 'DONE': return 100
+      default: return 0
+    }
+  }
+
+  const getPersonaProgressPercentage = () => {
+    if (!personaProgress) return 0
+    switch (personaProgress.step) {
+      case 'BRAINSTORMING_PERSONAS': return 20
+      case 'GENERATING_BACKSTORIES':
+        const base = 20
+        const totalSub = personaProgress.totalSubSteps || 12
+        const completedSub = personaProgress.completedSubSteps || 0
+        return base + (completedSub / totalSub) * 80
+      case 'DONE': return 100
+      default: return 0
+    }
+  }
+
+  const analysisSteps: Step[] = [
+    { id: 'STARTING', label: 'Starting', icon: Server, description: 'Powering up...' },
+    { id: 'OPENING_PAGE', label: 'Opening Page', icon: Globe, description: 'Loading your site...' },
+    { id: 'FINDING_PRICING', label: 'Finding Pricing', icon: Eye, description: 'Scanning for details...' },
+    {
+      id: 'THINKING',
+      label: 'Analyzing',
+      icon: BrainCircuit,
+      description: analysisProgress?.personaName
+        ? `Listening to ${analysisProgress.personaName}...`
+        : (analysisProgress?.completedCount ?? 0) > 0 && analysisProgress?.totalCount
+          ? `Processed ${analysisProgress.completedCount} of ${analysisProgress.totalCount} buyers`
+          : 'Listening to buyer opinions...'
+    },
+  ]
+
+  const personaSteps: Step[] = [
+    { id: 'BRAINSTORMING_PERSONAS', label: 'Finding buyers', icon: BrainCircuit, description: 'Finding the right types of people...' },
+    { id: 'GENERATING_BACKSTORIES', label: 'Writing backstories', icon: Zap, description: personaProgress?.personaName ? `Learning about ${personaProgress.personaName}...` : 'Finishing touches...' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-background p-4 md:p-8 md:pt-4 antialiased selection:bg-primary/20">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">AI Persona Generator</h1>
-          <p className="text-lg text-slate-600">Create realistic buyer personas based on your ideal customer profile</p>
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="input">Create Personas</TabsTrigger>
-            <TabsTrigger value="results" disabled={!personas}>View Personas</TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-4 pb-4 border-b border-white/5">
+            <div className="flex items-center justify-between w-full lg:w-auto">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <BrainCircuit className="h-4 w-4 text-primary/60" />
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap uppercase tracking-widest text-[14px]">Dashboard</h1>
+              </div>
+            </div>
 
-          {/* Input Tab */}
+            <div className="w-full lg:w-auto overflow-x-auto scrollbar-none pb-2 lg:pb-0">
+              <TabsList className="bg-transparent h-auto p-0 gap-2 md:gap-3 flex min-w-max">
+                <TabsTrigger value="input" className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">01</span>
+                  Project Setup
+                </TabsTrigger>
+                <TabsTrigger value="personas" disabled={!personas} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">02</span>
+                  Your Audience
+                </TabsTrigger>
+                <TabsTrigger value="analysis" disabled={!analyses} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">03</span>
+                  Pricing Audit
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+
           <TabsContent value="input">
-            <Card>
-              <CardHeader>
-                <CardTitle>Describe Your Ideal Customer</CardTitle>
-                <CardDescription>Tell us about your ideal customer profile, and we'll generate AI personas based on it</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700">Customer Profile Description</label>
-                  <textarea
-                    placeholder="E.g., 'Bootstrapped founders aged 25-40 in tech, bootstrapping their first SaaS product, cost-conscious but willing to pay for value. Spend $50-200/month on tools. Tech-savvy, read product blogs and Hacker News. Value transparency and no surprises.'"
-                    value={customerProfile}
-                    onChange={(e) => setCustomerProfile(e.target.value)}
-                    disabled={isPending}
-                    className="text-base w-full min-h-[120px] p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-slate-500 mt-2">
-                    Be specific: include age range, industry, income level, values, pain points, tech comfort level
-                  </p>
-                </div>
-
-                {error && (
-                  <Alert className="border-red-200 bg-red-50">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <AlertDescription className="text-red-900">
-                      {error}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Alert className="border-blue-200 bg-blue-50">
-                  <Zap className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-900">
-                    We'll generate 3 diverse personas that fit your customer profile. Each will have a unique backstory, financial situation, and decision-making style.
-                  </AlertDescription>
-                </Alert>
-
-                <Button 
-                  onClick={handleGeneratePersonas} 
-                  disabled={!customerProfile.trim() || isPending}
-                  size="lg"
-                  className="w-full"
-                >
-                  {isPending ? (
-                    <span className="flex items-center gap-2">
-                      <Loader className="h-4 w-4 animate-spin" />
-                      Generating Personas...
-                    </span>
-                  ) : (
-                    'Generate Personas'
-                  )}
-                </Button>
-
-                {/* Featured Results Preview */}
-                <div className="mt-12 space-y-6">
-                  <h3 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-slate-700" />
-                    What You'll Get
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="border-slate-200">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Tailored to Your Customer</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-slate-600">3 personas generated specifically from your customer profile, not generic archetypes.</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Rich Backstories</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-slate-600">Detailed personal narratives explaining each persona's background, financial situation, and decision-making style.</p>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-slate-200">
-                      <CardHeader>
-                        <CardTitle className="text-lg">Ready for Analysis</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-slate-600">Use these personas to evaluate pricing, messaging, features, and more (coming soon).</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <CustomerInputView
+              customerProfile={customerProfile}
+              setCustomerProfile={setCustomerProfile}
+              isPending={isPersonaPending}
+              error={personaError}
+              onGenerate={handleGeneratePersonas}
+              onUseExamples={handleUseExamples}
+              onUseMockAnalysis={handleUseMockAnalysis}
+            />
           </TabsContent>
 
-          {/* Results Tab */}
-          <TabsContent value="results">
+          <TabsContent value="personas">
             {personas && (
-              <div className="space-y-6">
-                {/* Summary Alert */}
-                <Alert className="border-slate-300 bg-slate-50">
-                  <AlertCircle className="h-4 w-4 text-slate-600" />
-                  <AlertDescription className="text-slate-900">
-                    <strong>Personas Generated.</strong> Here are your {personas.length} AI personas tailored to your customer profile, complete with detailed backstories and backgrounds.
-                  </AlertDescription>
-                </Alert>
+              <PersonaGridView
+                personas={personas}
+                pricingUrl={pricingUrl}
+                setPricingUrl={setPricingUrl}
+                isPending={isAnalysisPending}
+                onAnalyze={() => handleAnalyzePricing(personas)}
+                onChat={(persona) => setActiveChat({ persona, analysis: null })}
+              />
+            )}
+          </TabsContent>
 
-                {/* Personas Grid */}
-                <div className="space-y-6">
-                  {personas.map((persona) => (
-                    <Card key={persona.id} className="border-slate-200">
-                      <CardHeader>
-                        <div className="space-y-3">
-                          <div>
-                            <CardTitle className="text-2xl mb-2">{persona.name}</CardTitle>
-                            <CardDescription className="text-base">{persona.occupation}</CardDescription>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline">
-                              Age: {persona.age}
-                            </Badge>
-                            <Badge variant="outline">
-                              {persona.educationLevel}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        {/* Expandable Backstory */}
-                        {persona.backstory && (
-                          <div className="border border-slate-300 rounded-lg">
-                            <button
-                              onClick={() =>
-                                setExpandedBackstory(
-                                  expandedBackstory === persona.id ? null : persona.id
-                                )
-                              }
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
-                            >
-                              <h4 className="font-semibold text-slate-900">Backstory & Life Story</h4>
-                              <ChevronDown
-                                className={`h-5 w-5 text-slate-600 transition-transform ${
-                                  expandedBackstory === persona.id ? 'rotate-180' : ''
-                                }`}
-                              />
-                            </button>
-                            {expandedBackstory === persona.id && (
-                              <div className="px-4 py-4 border-t border-slate-300 bg-slate-50">
-                                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                  {persona.backstory}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Goals */}
-                        {persona.goals.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-slate-900">Goals & Priorities</h4>
-                            <ul className="space-y-2">
-                              {persona.goals.map((goal, idx) => (
-                                <li key={idx} className="flex gap-3 text-sm">
-                                  <span className="text-blue-500 font-bold">•</span>
-                                  <span className="text-slate-700">{goal}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Personality Traits */}
-                        {persona.personalityTraits.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-slate-900">Personality Traits</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {persona.personalityTraits.map((trait, idx) => (
-                                <Badge key={idx} variant="secondary">
-                                  {trait}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Interests */}
-                        {persona.interests.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="font-semibold text-slate-900">Interests & Hobbies</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {persona.interests.map((interest, idx) => (
-                                <Badge key={idx} variant="outline">
-                                  {interest}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                  <CardHeader>
-                    <CardTitle>What's Next?</CardTitle>
-                    <CardDescription>Coming soon: Evaluate your pricing page, messaging, and features against these personas.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <Button 
-                      onClick={() => {
-                        setPersonas(null)
-                        setActiveTab('input')
-                        setCustomerProfile('')
-                        setError(null)
-                      }}
-                      variant="default"
-                    >
-                      Generate Different Personas
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+          <TabsContent value="analysis">
+            {analyses && personas && (
+              <AnalysisResultView
+                personas={personas}
+                analyses={analyses}
+                pricingUrl={pricingUrl}
+                predictingGazeId={predictingGazeId}
+                onPredictGaze={handlePredictGaze}
+                onChat={(persona, analysis) => setActiveChat({ persona, analysis })}
+              />
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Global Overlays */}
+        <ThoughtfulDialog
+          isOpen={!!analysisProgress}
+          title="Pricing Audit"
+          description="Analyzing your page through the eyes of your customers."
+          progress={getAnalysisProgressPercentage()}
+          onCancel={cancelAnalysis}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 h-full">
+            <div className="space-y-8 overflow-y-auto pr-0 lg:pr-4 custom-scrollbar">
+              {analysisSteps.map((step, idx) => (
+                <RefinedStep
+                  key={step.id}
+                  step={step}
+                  isActive={step.id === analysisProgress?.step}
+                  isDone={analysisSteps.findIndex(s => s.id === analysisProgress?.step) > idx}
+                  streamingText={step.id === 'THINKING' ? combinedAnalysisStream : undefined}
+                />
+              ))}
+            </div>
+
+            <div className="hidden lg:block relative">
+              <div className="sticky top-0 space-y-4">
+                {analysisProgress?.screenshot ? (
+                  <div className="rounded-xl overflow-hidden border border-white/10 shadow-3xl bg-black relative animate-in fade-in duration-300">
+                    <img src={`data:image/jpeg;base64,${analysisProgress.screenshot}`} alt="Live Feed" className="w-full h-auto opacity-50" />
+                    <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10">
+                      <div className="size-1.5 rounded-full bg-primary" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/80">Stream Active</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="aspect-video rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4 opacity-10">
+                      <Server className="size-10" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.3em]">Connecting to site...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </ThoughtfulDialog>
+
+        <ThoughtfulDialog
+          isOpen={!!personaProgress}
+          title="Building Audience"
+          description="Writing 2,500-word backstories for your target customers."
+          progress={getPersonaProgressPercentage()}
+          onCancel={cancelPersonaGeneration}
+        >
+          <div className="space-y-10">
+            {personaSteps.map((step, idx) => (
+              <RefinedStep
+                key={step.id}
+                step={step}
+                isActive={step.id === personaProgress?.step}
+                isDone={personaSteps.findIndex(s => s.id === personaProgress?.step) > idx}
+                subText={step.id === 'GENERATING_BACKSTORIES' && step.id === personaProgress?.step ? `Generating profile ${(personaProgress.completedCount || 0) + 1} of ${personaProgress.totalCount || 3}` : undefined}
+              />
+            ))}
+
+            {personaProgress?.step === 'BRAINSTORMING_PERSONAS' && personaProgress.personas && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 animate-in fade-in duration-300">
+                {personaProgress.personas.map((p: Partial<Persona>, i: number) => (
+                  <Card key={i} className="p-6 space-y-5 rounded-lg border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors duration-200">
+                    <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary/60 tracking-tighter">
+                      {p.name ? p.name.charAt(0) : <Loader2 className="size-3 animate-spin opacity-40" />}
+                    </div>
+
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-sm text-foreground tracking-tight">
+                        {p.name || <span className="opacity-10 text-[10px] uppercase font-black uppercase tracking-widest italic">Learning...</span>}
+                      </h4>
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/30">
+                        {p.occupation || "Analyzing profile..."}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {p.personalityTraits?.slice(0, 3).map((t: string, ti: number) => (
+                        <span key={ti} className="text-[8px] px-2 py-0.5 rounded border border-white/5 bg-white/5 text-muted-foreground/40 font-bold uppercase tracking-widest">
+                          {t}
+                        </span>
+                      )) || (
+                          <div className="flex gap-2">
+                            {[1, 2].map(s => <div key={s} className="h-3 w-10 rounded-sm bg-white/5 animate-pulse" />)}
+                          </div>
+                        )}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </ThoughtfulDialog>
+
+        {activeChat && (
+          <PersonaChat
+            persona={activeChat.persona}
+            analysis={activeChat.analysis}
+            isOpen={!!activeChat}
+            onOpenChange={(open) => !open && setActiveChat(null)}
+          />
+        )}
       </div>
     </div>
   )

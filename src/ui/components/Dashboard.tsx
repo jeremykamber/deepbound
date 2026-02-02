@@ -22,6 +22,7 @@ import { CustomerInputView } from './dashboard/views/CustomerInputView'
 import { PersonaGridView } from './dashboard/views/PersonaGridView'
 import { AnalysisResultView } from './dashboard/views/AnalysisResultView'
 import { PersonaChat } from './PersonaChat'
+import Logo from './Logo'
 
 export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('input')
@@ -122,9 +123,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-4 pb-4 border-b border-white/5">
             <div className="flex items-center justify-between w-full lg:w-auto">
               <div className="flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <BrainCircuit className="h-4 w-4 text-primary/60" />
-                </div>
+                <Logo />
                 <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap uppercase tracking-widest text-[14px]">Dashboard</h1>
               </div>
             </div>

@@ -26,10 +26,7 @@ export default function MarketingLayout({
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="text-muted-foreground/60 hover:text-white px-4 font-bold h-8 rounded-lg text-[10px] uppercase tracking-widest transition-colors">Login</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="premium" size="sm" className="rounded-lg px-5 h-8 font-bold text-[10px] uppercase tracking-widest">Console</Button>
+              <Button variant="premium" size="sm" className="rounded-lg px-5 h-8 font-bold text-[10px] uppercase tracking-widest">Get started</Button>
             </Link>
           </div>
         </div>

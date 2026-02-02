@@ -132,15 +132,15 @@ export const Dashboard: React.FC = () => {
             <div className="w-full lg:w-auto overflow-x-auto scrollbar-none pb-2 lg:pb-0">
               <TabsList className="bg-transparent h-auto p-0 gap-2 md:gap-3 flex min-w-max">
                 <TabsTrigger value="input" className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
-                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">01</span>
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">1</span>
                   Project Setup
                 </TabsTrigger>
                 <TabsTrigger value="personas" disabled={!personas} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
-                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">02</span>
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">2</span>
                   Your Audience
                 </TabsTrigger>
                 <TabsTrigger value="analysis" disabled={!analyses} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
-                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">03</span>
+                  <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">3</span>
                   Pricing Audit
                 </TabsTrigger>
               </TabsList>

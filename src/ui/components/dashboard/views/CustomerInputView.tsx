@@ -33,7 +33,7 @@ export const CustomerInputView: React.FC<CustomerInputViewProps> = ({
               className="text-[10px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-2"
             >
               <FlaskConical className="size-3" />
-              View Sample
+              View Sample Analysis
             </button>
           </div>
           <textarea
@@ -55,7 +55,7 @@ export const CustomerInputView: React.FC<CustomerInputViewProps> = ({
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-6 border-t border-white/5">
           <div className="flex items-center gap-4 text-muted-foreground/60 w-full md:w-auto">
             <Zap className="size-5 text-primary/20 shrink-0" />
-            <p className="text-xs font-bold uppercase tracking-widest leading-relaxed max-w-sm">Generating high-fidelity buyer personas</p>
+            <p className="text-xs font-bold uppercase tracking-widest leading-relaxed max-w-sm">Generate high-fidelity buyer personas</p>
           </div>
           <div className="flex flex-col gap-3 w-full md:w-auto md:min-w-[280px]">
             <Button

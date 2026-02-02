@@ -407,7 +407,7 @@ export const PersonaAnalysisReport: React.FC<PersonaAnalysisPDFProps> = ({
                         <View style={styles.personaDetailGrid} wrap={false}>
                             <View style={styles.personaDetailColumn}>
                                 <Text style={styles.personaDetailLabel}>Backstory</Text>
-                                <Text style={styles.personaDetailText}>{persona.backstory.substring(0, 300)}...</Text>
+                                <Text style={styles.personaDetailText}>{persona.backstory ? `${persona.backstory.substring(0, 300)}...` : "No backstory provided."}</Text>
                             </View>
                             <View style={styles.personaDetailColumn}>
                                 <Text style={styles.personaDetailLabel}>Goals</Text>
@@ -432,7 +432,7 @@ const MetricBlock: React.FC<{ label: string, value: number, highlight?: boolean 
     <View style={styles.metricBlock}>
         <Text style={styles.metricLabel}>{label}</Text>
         <View style={styles.metricValueContainer}>
-            <Text style={[styles.metricValue, highlight && styles.metricHighlight]}>{value}</Text>
+            <Text style={highlight ? [styles.metricValue, styles.metricHighlight] : styles.metricValue}>{value}</Text>
             <Text style={styles.metricMax}>/10</Text>
         </View>
     </View>

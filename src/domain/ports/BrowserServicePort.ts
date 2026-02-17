@@ -12,7 +12,7 @@ export interface BrowserServicePort {
     navigateTo(url: string, onProgress?: (status: 'SETTING_UP' | 'LOADING_WEBSITE') => void, onLiveScreenshot?: (screenshotBase64: string) => Promise<void>): Promise<void>;
     scrollDown(pixels: number): Promise<void>;
     captureViewport(): Promise<string>;
-    capturePageFragments(): Promise<string[]>;
+    captureFullPage(): Promise<string>;
     getCleanedHtml(): Promise<string>;
     close(): Promise<void>;
 }

@@ -14,7 +14,7 @@ export class RemotePlaywrightAdapter implements BrowserServicePort {
     private page: Page | null = null;
 
     // Config defaults
-    private readonly VIEWPORT = { width: 800, height: 600 };
+    private readonly VIEWPORT = { width: 1280, height: 800 };
     private readonly TIMEOUT_MS = 30000;
 
     constructor(wsEndpoint: string) {
@@ -146,46 +146,23 @@ export class RemotePlaywrightAdapter implements BrowserServicePort {
     }
 
     /**
-     * Captures a sequence of screenshots (Top, Middle, Bottom) to give vision models
-     * a full sense of the page without losing resolution on super-tall images.
+     * Captures a high-quality full-page screenshot.
      */
-    async capturePageFragments(): Promise<string[]> {
+    async captureFullPage(): Promise<string> {
         if (!this.page) throw new Error("Browser not initialized.");
 
-        const fragments: string[] = [];
-        const quality = 40; // Intense downscale to avoid 400 errors with multiple images
+        console.log(`[BrowserAdapter] Capturing full-page screenshot...`);
 
-        // 1. Top of page
-        await this.page.evaluate(() => window.scrollTo(0, 0));
-        await this.page.waitForTimeout(500); // Settle
-        const top = await this.page.screenshot({ fullPage: false, type: "jpeg", quality });
-        fragments.push(top.toString("base64"));
+        // Wait for stability one last time
+        await this.waitPageCompletely(this.page);
 
-        // 2. Middle of page (approx)
-        await this.page.evaluate(() => {
-            const height = document.body.scrollHeight;
-            window.scrollTo(0, height / 3);
+        const buffer = await this.page.screenshot({
+            fullPage: true,
+            type: "jpeg",
+            quality: 70 // Higher quality for the final analysis
         });
-        await this.page.waitForTimeout(500);
-        const middle = await this.page.screenshot({ fullPage: false, type: "jpeg", quality });
-        fragments.push(middle.toString("base64"));
 
-        // 3. Bottom of page (if it's long enough)
-        const isLongPage = await this.page.evaluate(() => document.body.scrollHeight > window.innerHeight * 2);
-        if (isLongPage) {
-            await this.page.evaluate(() => {
-                const height = document.body.scrollHeight;
-                window.scrollTo(0, height / 1.5); // 2/3 down
-            });
-            await this.page.waitForTimeout(500);
-            const bottom = await this.page.screenshot({ fullPage: false, type: "jpeg", quality });
-            fragments.push(bottom.toString("base64"));
-        }
-
-        // Restore top position
-        await this.page.evaluate(() => window.scrollTo(0, 0));
-
-        return fragments;
+        return buffer.toString("base64");
     }
 
     /**
@@ -317,16 +294,21 @@ export class RemotePlaywrightAdapter implements BrowserServicePort {
             .waitForLoadState("networkidle")
             .catch(() => console.log("Network didn't settle, continuing..."));
 
-        // 3. Custom: Wait for no 'loading' text/spinners to exist
-        // This is a heuristic that works on 80% of modern sites
-        await page
-            .locator(':text-matches("loading", "i")')
-            .waitFor({ state: "hidden", timeout: 2000 })
-            .catch(() => { });
+        // 3. Custom: Wait for no 'loading' text/spinners/skeletons to exist
+        const loaders = [
+            ':text-matches("loading", "i")',
+            '[class*="skeleton"]',
+            '[class*="shimmer"]',
+            '[class*="loading-indicator"]'
+        ];
 
-        // 4. Final "Settling" pause (the 500ms breather)
+        for (const selector of loaders) {
+            await page.locator(selector).first().waitFor({ state: "hidden", timeout: 2000 }).catch(() => { });
+        }
+
+        // 4. Final "Settling" pause (the 1000ms breather)
         // Essential for animations/transitions to finish before a screenshot
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(1000);
     }
 
     /**

@@ -280,7 +280,6 @@ interface Persona {
   designStyle: string;       // e.g. Minimalist, Industrial, Mid-Century Modern
   favoriteColors: string[];
   livingEnvironment: string; // Describe their messy/organized home or office
-  backstory?: string;
 }
 
 CRITICAL REQUIREMENTS:
@@ -288,23 +287,13 @@ CRITICAL REQUIREMENTS:
 - CONSCIENTIOUSNESS: High=Meticulous/reads everything; Low=Chaotic/skips details.
 - NEUROTICISM: High=Risk-averse/anxious about contract traps; Low=Bold/adventuresome.
 - COGNITIVE REFLEX: 0=System 1 (Emotional/Gut); 100=System 2 (Calculative/Unit Economics).
-- DISTRIBUTION: Ensure the 3 personas represent a spectrum across these variables (e.g., don't make them all high System 2).
-- REALISM: Ages, occupations, and goals must remain grounded in the provided ICP description.
-- AESTHETIC DNA: Define their design taste. Are they minimalists who hate clutter? Do they love bold, vibrant colors or muted tones? Is their living space a chaotic creative studio or a sterile, organized office?
+- DISTRIBUTION: Ensure the 3 personas represent a spectrum across these variables.
+- REALISM: Ages, occupations, and goals must match the description.
+- AESTHETIC DNA: Define their design taste.
 
 Return ONLY valid JSON without explanatory text or markdown code blocks.`;
 
-        const user = `Create 3 diverse personas for pricing evaluation based on the following ideal customer profile description: "${personaDescription}"
-
-You MUST make sure above all that your personas fall within and match that ideal customer profile.
-
-DIVERSITY CRITERIA:
-1. Different financial profiles
-2. Different industries or roles where applicable
-3. Different approaches to technology adoption and ROI calculation
-4. Different communication styles and decision-making speeds
-
-Make them realistic, specific, and ready for deep backstory generation. JSON array only.`;
+        const user = `Create 3 diverse personas for: "${personaDescription}". Ensure different financial profiles and tech fluency.`;
 
         const content = await this.createChatCompletion(
             [
@@ -385,9 +374,46 @@ Make them realistic, specific, and ready for deep backstory generation. JSON arr
      * Streaming version of generateInitialPersonas using Vercel AI SDK's streamObject.
      */
     async * generateInitialPersonasStream(personaDescription: string): AsyncIterable<Partial<Persona>[]> {
-        const system = `You are a persona generator Creating 3 DISTINCT buyer personas.
-CRITICAL: You must generate a JSON ARRAY of personas.
-Assign high-fidelity 0-100 scalars for all psychological traits.`;
+        const system = `You are a persona generator creating realistic buyer personas for SaaS pricing evaluation.
+
+Generate a JSON array of 3 DISTINCT personas matching this TypeScript interface:
+
+interface Persona {
+  id: string;
+  name: string;
+  age: number;
+  occupation: string;
+  educationLevel: string;
+  interests: string[];
+  goals: string[];
+  personalityTraits: string[];
+  // Big Five Personality Traits (0-100)
+  conscientiousness: number; 
+  neuroticism: number;
+  openness: number;
+  extraversion: number;
+  agreeableness: number;
+  // Cognitive Engine (0-100: 0=System 1/Intuitive, 100=System 2/Analytical)
+  cognitiveReflex: number;
+  // Skill & Resource Layer (0-100)
+  technicalFluency: number;
+  economicSensitivity: number;
+  // Aesthetic & Environment
+  designStyle: string;       // e.g. Minimalist, Industrial, Mid-Century Modern
+  favoriteColors: string[];
+  livingEnvironment: string; // Describe their messy/organized home or office
+}
+
+CRITICAL REQUIREMENTS:
+- SCIENTIFIC ROOT CAUSES: Assign high-fidelity scalars (0-100) for the Big Five and Cognitive Reflex. These are the "genes" of the persona.
+- CONSCIENTIOUSNESS: High=Meticulous/reads everything; Low=Chaotic/skips details.
+- NEUROTICISM: High=Risk-averse/anxious about contract traps; Low=Bold/adventuresome.
+- COGNITIVE REFLEX: 0=System 1 (Emotional/Gut); 100=System 2 (Calculative/Unit Economics).
+- DISTRIBUTION: Ensure the 3 personas represent a spectrum across these variables.
+- REALISM: Ages, occupations, and goals must match the description.
+- AESTHETIC DNA: Define their design taste.
+
+Return ONLY valid JSON without explanatory text or markdown code blocks.`;
 
         const { partialOutputStream } = streamText({
             model: this.provider(this.smallTextModel),
@@ -835,7 +861,7 @@ Now write 2-3 final paragraphs that:
         const stream = await this.withRetry(async () => {
             const reqId = ++LlmServiceImpl.requestCount;
             console.log(
-                `[LlmService] [Req #${reqId}] [Vision Analysis] Starting stream to ${this.visionModel} with ${screenshots.length} fragments...`,
+                `[LlmService] [Req #${reqId}] [Vision Analysis] Starting stream to ${this.visionModel}...`,
             );
             return await this.client.chat.completions.create({
                 model: this.visionModel,
@@ -1049,5 +1075,57 @@ STAY IN CHARACTER at all times.`;
         console.log(
             `[LlmService][Req #${reqId}][Streaming Chat] Stream completed.`,
         );
+    }
+
+    async validatePromptDomain(
+        persona: Persona,
+        prompt: string,
+    ): Promise<{ isValid: boolean; reason?: string }> {
+        const system = `You are a specialized guardrail agent for an AI User Testing platform.
+Your job is to determine if a user's message to a specific persona is "In Domain" or "Out of Domain".
+
+A message is IN DOMAIN if it relates to:
+- The software product being tested.
+- The persona's professional background, goals, or buying behavior.
+- SaaS pricing, features, or value propositions.
+- Any natural conversation you would expect a human tester to have with a researcher.
+
+A message is OUT OF DOMAIN if it asks the persona to perform general AI assistant tasks, such as:
+- Writing code (Python, Javascript, etc.).
+- Writing poems, stories, or creative literature.
+- Solving complex math problems unrelated to the SaaS.
+- Acting as a general search engine or tutor.
+
+PERSONA CONTEXT:
+Name: ${persona.name}
+Occupation: ${persona.occupation}
+Backstory: ${persona.backstory}
+
+USER MESSAGE:
+"${prompt}"
+
+Respond ONLY with a JSON object:
+{
+  "isValid": boolean,
+  "reason": "Short explanation if isValid is false, otherwise empty"
+}`;
+
+        try {
+            const response = await this.client.chat.completions.create({
+                model: this.smallTextModel,
+                messages: [{ role: "system", content: system }],
+                response_format: { type: "json_object" },
+                temperature: 0,
+            });
+
+            const result = JSON.parse(response.choices[0].message.content || "{}");
+            return {
+                isValid: result.isValid === true,
+                reason: result.reason || "This request is outside the scope of this persona interview."
+            };
+        } catch (err) {
+            console.error("[LlmService] Guardrail check failed:", err);
+            return { isValid: true }; // Fallback to allowing if guardrail fails
+        }
     }
 }

@@ -131,4 +131,13 @@ export interface LlmServicePort {
         message: string,
         history: { role: "user" | "assistant"; content: string }[],
     ): AsyncIterable<string>;
+
+    /**
+     * Validates if a user's prompt is within the persona's expected domain.
+     * Prevents requests for code, poetry, or other general assistant tasks.
+     */
+    validatePromptDomain(
+        persona: Persona,
+        prompt: string,
+    ): Promise<{ isValid: boolean; reason?: string }>;
 }

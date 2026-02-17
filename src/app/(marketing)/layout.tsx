@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BrainCircuit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/ui/components/Logo";
 

@@ -93,12 +93,33 @@
   --accent: oklch(0.18 0.01 264);
   --accent-foreground: oklch(0.92 0.01 264);
   --destructive: oklch(0.6 0.18 28);
-  --border: oklch(1 0 0 / 12%);
-  /* Increased visibility */
+  --border: oklch(1 0 0 / 22%);
+  /* Increased visibility for better contrast */
   --input: oklch(1 0 0 / 18%);
   /* Increased visibility */
   --ring: oklch(0.65 0.1 264 / 0.3);
   --sidebar: oklch(0.1 0 0);
+}
+
+/* Amplify border widths generally */
+.border {
+  border-width: 2px !important;
+}
+
+.border-t {
+  border-top-width: 2px !important;
+}
+
+.border-b {
+  border-bottom-width: 2px !important;
+}
+
+.border-l {
+  border-left-width: 2px !important;
+}
+
+.border-r {
+  border-right-width: 2px !important;
 }
 
 @layer base {

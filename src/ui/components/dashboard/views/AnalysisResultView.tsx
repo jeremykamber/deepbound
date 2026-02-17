@@ -92,17 +92,17 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
             return (
               <CarouselItem key={analysis.id}>
                 <Card className="rounded-xl border-white/10 bg-white/[0.02] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
-                  <CardHeader className="p-10 border-b border-white/5 bg-white/[0.01]">
-                    <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
-                      <div className="space-y-2">
+                  <CardHeader className="p-6 md:p-10 border-b border-white/10 bg-white/[0.01]">
+                    <div className="flex flex-col lg:flex-row justify-between items-center lg:items-end gap-8">
+                      <div className="space-y-2 text-center lg:text-left">
                         <Badge variant="premium" className="rounded-md">AUDIT COMPLETE</Badge>
-                        <CardTitle className="text-2xl font-bold tracking-tight text-foreground">{persona.name}</CardTitle>
-                        <CardDescription className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{persona.occupation}</CardDescription>
+                        <CardTitle className="text-xl md:text-2xl font-bold tracking-tight text-foreground">{persona.name}</CardTitle>
+                        <CardDescription className="text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{persona.occupation}</CardDescription>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                         <Button
                           variant="outline"
-                          className="rounded-lg px-6 h-10 text-[10px] font-bold uppercase tracking-widest border-white/10 hover:bg-white/5"
+                          className="w-full sm:w-auto rounded-lg px-6 h-10 text-[10px] font-bold uppercase tracking-widest border-white/15 hover:bg-white/5"
                           disabled={!!predictingGazeId || !!analysis.gazePoints}
                           onClick={() => onPredictGaze(analysis, persona)}
                         >
@@ -111,7 +111,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                         </Button>
                         <Button
                           variant="premium"
-                          className="rounded-lg px-6 h-10 text-[10px] font-bold uppercase tracking-widest shadow-none"
+                          className="w-full sm:w-auto rounded-lg px-6 h-10 text-[10px] font-bold uppercase tracking-widest shadow-none"
                           onClick={() => onChat(persona, analysis)}
                         >
                           <MessageSquare className="mr-2 size-4" />
@@ -120,23 +120,23 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-10 space-y-12">
+                  <CardContent className="p-6 md:p-10 space-y-12">
                     {/* Gut Reaction - High Density Quote */}
                     <div className="relative pl-0 md:pl-10 border-l-0 md:border-l-2 border-primary/40">
                       <span className="hidden md:block absolute -left-1 top-0 text-[10px] font-black uppercase tracking-[0.3em] text-primary vertical-rl -translate-x-[250%] mt-1">First Impression</span>
-                      <p className="text-xl md:text-2xl font-medium text-foreground leading-snug tracking-tight antialiased">
+                      <p className="text-lg md:text-2xl font-medium text-foreground leading-snug tracking-tight antialiased">
                         &ldquo;{analysis.gutReaction}&rdquo;
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                       <MetricBlock label="UI Clarity" value={analysis.scores.clarity} />
                       <MetricBlock label="Value Perception" value={analysis.scores.valuePerception} />
                       <MetricBlock label="Psychological Trust" value={analysis.scores.trust} />
                       <MetricBlock label="Buying Likelihood" value={analysis.scores.likelihoodToBuy} highlight />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-10 border-t border-white/5">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 pt-10 border-t border-white/5">
                       <div className="space-y-10">
                         <div className="space-y-6">
                           <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50">Summary</h4>
@@ -165,7 +165,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                             </button>
 
                             {expandedMonologueId === analysis.id && (
-                              <div className="p-6 bg-white/[0.02] rounded-lg border border-white/10 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="p-6 bg-white/[0.02] rounded-lg border-2 border-white/15 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center gap-2">
                                   <div className="size-1.5 rounded-full bg-primary/40 animate-pulse" />
                                   <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40">Internal Thoughts</span>
@@ -187,7 +187,7 @@ export const AnalysisResultView: React.FC<AnalysisResultViewProps> = ({
                         <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50">Why they hesitate</h4>
                         <div className="grid gap-3">
                           {analysis.risks.map((risk, idx) => (
-                            <div key={idx} className="flex gap-4 p-4 bg-white/[0.03] rounded-lg border border-white/5 text-xs font-medium text-foreground leading-relaxed">
+                            <div key={idx} className="flex gap-4 p-4 bg-white/[0.03] rounded-lg border-2 border-white/10 text-xs font-medium text-foreground leading-relaxed">
                               <AlertCircle className="size-4 shrink-0 text-primary/30" /> {risk}
                             </div>
                           ))}

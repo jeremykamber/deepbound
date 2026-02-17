@@ -30,7 +30,7 @@ export const PersonaGridView: React.FC<PersonaGridViewProps> = ({
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {personas.map((persona) => (
           <PersonaCard
             key={persona.id}
@@ -56,7 +56,7 @@ export const PersonaGridView: React.FC<PersonaGridViewProps> = ({
       </Dialog>
 
       <Card className="rounded-xl border-white/10 bg-white/[0.02] shadow-2xl transition-all overflow-hidden border">
-        <div className="px-8 py-10 md:px-12 flex flex-col gap-10">
+        <div className="p-6 sm:p-10 md:p-12 flex flex-col gap-10">
           <div className="space-y-3">
             <h3 className="text-xl font-bold text-foreground tracking-tight">Audit your pricing</h3>
             <p className="text-sm text-muted-foreground/60 font-medium leading-relaxed max-w-lg">
@@ -73,7 +73,7 @@ export const PersonaGridView: React.FC<PersonaGridViewProps> = ({
                 value={pricingUrl}
                 onChange={(e) => setPricingUrl(e.target.value)}
                 disabled={isPending}
-                className="text-sm w-full h-12 bg-white/[0.02] border-white/10 rounded-lg focus:border-white/20 transition-colors duration-200 placeholder:text-muted-foreground/10 shadow-inner px-4 font-mono"
+                className="text-sm w-full h-12 bg-white/[0.02] border-2 border-white/10 rounded-lg focus:border-white/20 transition-colors duration-200 placeholder:text-muted-foreground/10 shadow-inner px-4 font-mono"
               />
             </div>
 

@@ -49,6 +49,8 @@ export function usePersonaFlow(onSuccess?: (personas: Persona[]) => void) {
         let lastUpdate = 0;
         const THROTTLE_MS = 150;
 
+        let lastStep: string | null = null;
+
         for await (const update of readStreamableValue(streamData)) {
           if (controller.signal.aborted) {
             setPersonaProgress(null)
@@ -73,9 +75,11 @@ export function usePersonaFlow(onSuccess?: (personas: Persona[]) => void) {
             }
 
             const now = Date.now();
-            if (now - lastUpdate > THROTTLE_MS || update.step === 'DONE') {
-              setPersonaProgress((prev) => {
-                const newStreams = { ...(prev?.streamingTexts || {}) };
+            const stepChanged = update.step !== lastStep;
+
+            if (stepChanged || now - lastUpdate > THROTTLE_MS) {
+              setPersonaProgress((prevProgress) => {
+                const newStreams = { ...(prevProgress?.streamingTexts || {}) };
                 if (update.personaName && update.streamingText) {
                   newStreams[update.personaName] = update.streamingText;
                 }
@@ -85,6 +89,7 @@ export function usePersonaFlow(onSuccess?: (personas: Persona[]) => void) {
                 } as PersonaProgress;
               });
               lastUpdate = now;
+              lastStep = update.step;
             }
           }
         }

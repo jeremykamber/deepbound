@@ -35,8 +35,7 @@ export class ParsePricingPageUseCase {
     // 1. Capture screenshot of the pricing page with adaptive scouting
     console.log(`[ParsePricingPageUseCase] Starting adaptive scouting for ${url}...`);
 
-    let screenshotBase64 = '';
-    let capturedScreenshots: string[] = [];
+    let capturedScreenshot = '';
     let pageHtml = '';
 
     try {
@@ -74,14 +73,10 @@ export class ParsePricingPageUseCase {
         }
       );
 
-      // 1. Capture multiple screenshots (Top, Middle, Bottom) for full context
-      const screenshots = await this.browserService.capturePageFragments();
-      screenshotBase64 = screenshots[0]; // Use top for UI preview
+      // 1. Capture high-quality full-page screenshot
+      capturedScreenshot = await this.browserService.captureFullPage();
 
-      // Store for analysis phase
-      capturedScreenshots = screenshots;
-
-      onProgress?.({ step: 'FINDING_PRICING', screenshot: screenshotBase64 });
+      onProgress?.({ step: 'FINDING_PRICING', screenshot: capturedScreenshot });
 
       // 2. Get cleaned HTML/Text for grounding the vision models
       pageHtml = await this.browserService.getCleanedHtml();
@@ -121,7 +116,7 @@ export class ParsePricingPageUseCase {
     // Initial broadcast
     onProgress?.({
       step: 'THINKING',
-      screenshot: screenshotBase64,
+      screenshot: capturedScreenshot,
       totalCount,
       completedCount: 0
     });
@@ -141,7 +136,7 @@ export class ParsePricingPageUseCase {
         console.log(`[ParsePricingPageUseCase] Starting analysis for persona: ${persona.name}...`);
         onProgress?.({
           step: 'THINKING',
-          screenshot: screenshotBase64,
+          screenshot: capturedScreenshot,
           personaName: persona.name,
           totalCount,
           completedCount: finishedCount
@@ -149,16 +144,14 @@ export class ParsePricingPageUseCase {
 
         // 1. Unified Vision Analysis (Raw Thoughts) - pure visual
         let rawThoughts = "";
-        // MVP SIMPLIFICATION: We only send the top viewport (index 0) to ensure API stability.
-        // The pageHtml provides the "textual grounding" for anything below the fold.
-        const screenshotsToAnalyze = [capturedScreenshots[0] || screenshotBase64!];
+        const screenshotsToAnalyze = [capturedScreenshot];
 
         for await (const chunk of this.llmService.analyzeStaticPageStream(persona, screenshotsToAnalyze)) {
           if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
           rawThoughts += chunk;
           onProgress?.({
             step: 'THINKING',
-            screenshot: screenshotBase64,
+            screenshot: capturedScreenshot,
             personaName: persona.name,
             totalCount,
             completedCount: finishedCount,
@@ -185,7 +178,7 @@ export class ParsePricingPageUseCase {
         finishedCount++;
         onProgress?.({
           step: 'THINKING',
-          screenshot: screenshotBase64,
+          screenshot: capturedScreenshot,
           totalCount,
           completedCount: finishedCount
         });
@@ -196,7 +189,7 @@ export class ParsePricingPageUseCase {
           rawAnalysis: rawThoughts,
           id: `${persona.id}-${Date.now()}`,
           url,
-          screenshotBase64,
+          screenshotBase64: capturedScreenshot,
         };
 
         // Validate

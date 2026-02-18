@@ -26,11 +26,11 @@ export const CustomerInputView: React.FC<CustomerInputViewProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-12 space-y-8">
         <div className="space-y-4">
-          <div className="flex items-center justify-between ml-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between ml-1 gap-2">
             <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Who is your product for?</label>
             <button
               onClick={onUseMockAnalysis}
-              className="text-[10px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-2"
+              className="text-[10px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors flex items-center gap-2 self-start sm:self-auto"
             >
               <FlaskConical className="size-3" />
               View Sample Analysis
@@ -41,7 +41,7 @@ export const CustomerInputView: React.FC<CustomerInputViewProps> = ({
             value={customerProfile}
             onChange={(e) => setCustomerProfile(e.target.value)}
             disabled={isPending}
-            className="text-base w-full min-h-[160px] p-6 bg-white/[0.02] border border-white/10 rounded-lg focus:outline-none focus:border-white/20 transition-colors duration-200 font-normal antialiased leading-relaxed placeholder:text-muted-foreground/20 shadow-inner mt-4"
+            className="text-base w-full min-h-[160px] p-4 md:p-6 bg-white/[0.02] border-2 border-white/10 rounded-lg focus:outline-none focus:border-white/20 transition-colors duration-200 font-normal antialiased leading-relaxed placeholder:text-muted-foreground/20 shadow-inner mt-4"
           />
         </div>
 

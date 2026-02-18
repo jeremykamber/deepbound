@@ -75,6 +75,15 @@ export const PersonaChatInterface: React.FC<PersonaChatInterfaceProps> = ({
 
         for await (const content of readStreamableValue(streamData)) {
           if (content) {
+            if (content.startsWith('GUARDRAIL_VIOLATION: ')) {
+              const reason = content.replace('GUARDRAIL_VIOLATION: ', '');
+              setMessages((prev) => {
+                const head = prev.slice(0, -1);
+                return [...head, { role: 'assistant', content: `❌ **OFF-DOMAIN REQUEST**\n\n${reason}` }]
+              });
+              return;
+            }
+
             setMessages((prev) => {
               const last = prev[prev.length - 1]
               if (last && last.role === 'assistant') {

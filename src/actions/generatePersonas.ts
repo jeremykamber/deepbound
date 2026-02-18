@@ -16,7 +16,9 @@ export async function generatePersonasAction(personaDescription: string) {
             const personas = await useCase.execute(personaDescription, (progress) => {
                 stream.update(progress);
             });
-            stream.done({ step: "DONE", personas });
+            // Final snapshot of personas for the DONE state
+            const finalPersonas = JSON.parse(JSON.stringify(personas));
+            stream.done({ step: "DONE", personas: finalPersonas });
         } catch (error) {
             console.error("Error generating personas:", error);
             stream.done({ step: "ERROR", error: (error as Error).message });

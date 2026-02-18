@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BrainCircuit, Server, Globe, Eye, Zap, Loader2 } from 'lucide-react'
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Persona } from '@/domain/entities/Persona'
 import { PricingAnalysis } from '@/domain/entities/PricingAnalysis'
 import { MOCK_PERSONAS } from '@/domain/entities/MockPersonas'
@@ -22,11 +22,14 @@ import { CustomerInputView } from './dashboard/views/CustomerInputView'
 import { PersonaGridView } from './dashboard/views/PersonaGridView'
 import { AnalysisResultView } from './dashboard/views/AnalysisResultView'
 import { PersonaChat } from './PersonaChat'
+import { PartialPersonaCard } from "@/components/PartialPersonaCard";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel"
 import Logo from './Logo'
 
 export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('input')
   const [activeChat, setActiveChat] = useState<{ persona: Persona; analysis: PricingAnalysis | null } | null>(null)
+  const [api, setApi] = useState<CarouselApi>()
 
   const {
     customerProfile,
@@ -128,17 +131,17 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="w-full lg:w-auto overflow-x-auto scrollbar-none pb-2 lg:pb-0">
+            <div className="w-full lg:w-auto overflow-x-auto scrollbar-none pb-1 lg:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
               <TabsList className="bg-transparent h-auto p-0 gap-2 md:gap-3 flex min-w-max">
-                <TabsTrigger value="input" className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                <TabsTrigger value="input" className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:border-white/20 data-[state=active]:border-primary/50 data-[state=active]:bg-primary/5 transition-all shrink-0">
                   <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">1</span>
                   Project Setup
                 </TabsTrigger>
-                <TabsTrigger value="personas" disabled={!personas} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                <TabsTrigger value="personas" disabled={!personas} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:border-white/20 data-[state=active]:border-primary/50 data-[state=active]:bg-primary/5 transition-all shrink-0">
                   <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">2</span>
                   Your Audience
                 </TabsTrigger>
-                <TabsTrigger value="analysis" disabled={!analyses} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/5 hover:border-white/10 transition-all shrink-0">
+                <TabsTrigger value="analysis" disabled={!analyses} className="rounded-lg h-9 px-4 md:px-5 text-[10px] font-bold uppercase tracking-widest border border-white/10 hover:border-white/20 data-[state=active]:border-primary/50 data-[state=active]:bg-primary/5 transition-all shrink-0">
                   <span className="size-4 rounded-sm border border-current flex items-center justify-center text-[8px] mr-2 md:mr-2.5 opacity-30">3</span>
                   Pricing Audit
                 </TabsTrigger>
@@ -248,35 +251,48 @@ export const Dashboard: React.FC = () => {
             ))}
 
             {personaProgress?.step === 'BRAINSTORMING_PERSONAS' && personaProgress.personas && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 animate-in fade-in duration-300">
-                {personaProgress.personas.map((p: Partial<Persona>, i: number) => (
-                  <Card key={i} className="p-6 space-y-5 rounded-lg border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors duration-200">
-                    <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary/60 tracking-tighter">
-                      {p.name ? p.name.charAt(0) : <Loader2 className="size-3 animate-spin opacity-40" />}
+              <div className="space-y-8">
+                <Carousel key={`brainstorming-${personaProgress.personas.length}`} className="mt-8 mx-6 animate-in fade-in duration-300">
+                  <CarouselContent>
+                    {personaProgress.personas.length === 0 ? (
+                      <CarouselItem>
+                        <Card className="rounded-xl border-dashed border-white/10 bg-white/[0.01] overflow-hidden relative animate-pulse">
+                          <CardContent className="p-12 flex flex-col items-center justify-center text-center space-y-4">
+                            <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                              <Loader2 className="size-5 animate-spin text-primary/60" />
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Scanning ICP</p>
+                              <p className="text-xs text-muted-foreground/40 font-medium">Identifying target buyer segments...</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </CarouselItem>
+                    ) : (
+                      personaProgress.personas.map((p: Partial<Persona>, i: number) => (
+                        <CarouselItem key={i}>
+                          <PartialPersonaCard persona={p} />
+                        </CarouselItem>
+                      ))
+                    )}
+                  </CarouselContent>
+                  {personaProgress.personas.length > 0 && (
+                    <div className="flex items-center justify-end gap-3 mt-4">
+                      <CarouselPrevious className="size-8 rounded-lg border-white/10 text-muted-foreground/40 hover:text-white bg-white/[0.02]" />
+                      <CarouselNext className="size-8 rounded-lg border-white/10 text-muted-foreground/40 hover:text-white bg-white/[0.02]" />
                     </div>
+                  )}
+                </Carousel>
 
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-sm text-foreground tracking-tight">
-                        {p.name || <span className="opacity-10 text-[10px] uppercase font-black uppercase tracking-widest italic">Learning...</span>}
-                      </h4>
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/30">
-                        {p.occupation || "Analyzing profile..."}
-                      </p>
+                {personaProgress.personas.length > 0 && (
+                  <div className="flex flex-col items-center gap-4 py-8 border-t border-white/5 animate-in fade-in zoom-in-95 duration-500">
+                    <div className="flex items-center gap-3">
+                      <div className="size-1.5 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60">Synthesizing more profiles</span>
                     </div>
-
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {p.personalityTraits?.slice(0, 3).map((t: string, ti: number) => (
-                        <span key={ti} className="text-[8px] px-2 py-0.5 rounded border border-white/5 bg-white/5 text-muted-foreground/40 font-bold uppercase tracking-widest">
-                          {t}
-                        </span>
-                      )) || (
-                          <div className="flex gap-2">
-                            {[1, 2].map(s => <div key={s} className="h-3 w-10 rounded-sm bg-white/5 animate-pulse" />)}
-                          </div>
-                        )}
-                    </div>
-                  </Card>
-                ))}
+                    <p className="text-[10px] text-muted-foreground/30 font-bold uppercase tracking-widest">Hold tight — this takes about 30 seconds</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -294,3 +310,30 @@ export const Dashboard: React.FC = () => {
     </div>
   )
 }
+
+// <Card key={i} className="p-6 space-y-5 rounded-lg border border-white/10 bg-white/[0.01] hover:bg-white/[0.03] transition-colors duration-200">
+//   <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary/60 tracking-tighter">
+//     {p.name ? p.name.charAt(0) : <Loader2 className="size-3 animate-spin opacity-40" />}
+//   </div>
+//
+//   <div className="space-y-1">
+//     <h4 className="font-bold text-sm text-foreground tracking-tight">
+//       {p.name || <span className="opacity-10 text-[10px] uppercase font-black uppercase tracking-widest italic">Learning...</span>}
+//     </h4>
+//     <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/30">
+//       {p.occupation || "Analyzing profile..."}
+//     </p>
+//   </div>
+//
+//   <div className="flex flex-wrap gap-1.5 pt-1">
+//     {p.personalityTraits?.slice(0, 3).map((t: string, ti: number) => (
+//       <span key={ti} className="text-[8px] px-2 py-0.5 rounded border border-white/5 bg-white/5 text-muted-foreground/40 font-bold uppercase tracking-widest">
+//         {t}
+//       </span>
+//     )) || (
+//         <div className="flex gap-2">
+//           {[1, 2].map(s => <div key={s} className="h-3 w-10 rounded-sm bg-white/5 animate-pulse" />)}
+//         </div>
+//       )}
+//   </div>
+// </Card>

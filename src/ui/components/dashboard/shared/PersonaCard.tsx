@@ -34,21 +34,21 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({
           </Button>
         </div>
       )}
-      <CardHeader className="px-5 pb-2 pt-5 border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/60">
+      <CardHeader className="px-5 pb-2 pt-5 border-b-2 border-white/10">
+        <div className="flex items-start gap-4">
+          <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/60 shrink-0 mt-0.5">
             <Users className="size-4" />
           </div>
-          <div>
-            <CardTitle className="text-base font-bold tracking-tight mb-0.5">{persona.name}</CardTitle>
-            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50">{persona.occupation}</CardDescription>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base font-bold tracking-tight mb-0.5 truncate">{persona.name}</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50 line-clamp-1">{persona.occupation}</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="px-5 py-4 space-y-4">
         <div
           onClick={() => onViewProfile?.(persona)}
-          className="group/about relative border border-white/5 rounded-lg p-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors duration-200 cursor-pointer overflow-hidden"
+          className="group/about relative border-2 border-white/5 rounded-lg p-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors duration-200 cursor-pointer overflow-hidden"
         >
           <div className="flex items-center justify-between">
             <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 group-hover/about:text-primary transition-colors">
@@ -77,7 +77,7 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({
         {showChatButton && (
           <Button
             variant="ghost"
-            className="w-full rounded-lg text-[10px] h-9 font-bold uppercase tracking-[0.2em] text-primary/60 hover:text-primary hover:bg-primary/5 border border-primary/10 transition-colors duration-150 group"
+            className="w-full rounded-lg text-[10px] h-9 font-bold uppercase tracking-[0.2em] text-primary/60 hover:text-primary hover:bg-primary/5 border-2 border-primary/10 transition-colors duration-150 group"
             onClick={() => onChat?.(persona)}
           >
             <MessageSquare className="size-3 mr-2 opacity-50" />

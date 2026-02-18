@@ -32,15 +32,18 @@ export class GeneratePersonasUseCase {
         let partialPersonas: Partial<Persona>[] = [];
         for await (const partialArray of this.llmService.generateInitialPersonasStream(personaDescription)) {
             partialPersonas = partialArray;
+            // Snapshot the partial personas to prevent proxy/serialization issues
+            const snapshot = JSON.parse(JSON.stringify(partialPersonas));
             onProgress?.({
                 step: 'BRAINSTORMING_PERSONAS',
-                personas: partialPersonas as Persona[], // Cast for UI preview (some fields may be missing)
-                streamingText: JSON.stringify(partialPersonas, null, 2) // Optional: Keep raw JSON for debug/cool effect
+                personas: snapshot,
+                streamingText: JSON.stringify(snapshot, null, 2)
             });
         }
 
         // Finalize personas (ensure they are fully formed)
-        let personas: Persona[] = partialPersonas as Persona[];
+        // Deep clone to strip any AI SDK proxy objects before further processing
+        let personas: Persona[] = JSON.parse(JSON.stringify(partialPersonas));
 
         // Safety check: if stream yielded nothing or empty, fallback
         if (!personas || personas.length === 0) {
@@ -75,21 +78,17 @@ export class GeneratePersonasUseCase {
                 totalCount,
                 completedSubSteps,
                 totalSubSteps,
-                personas,
+                personas: JSON.parse(JSON.stringify(personas)),
                 streamingText: ""
             });
 
-            let fullBackstory = "";
-            console.log(`[GeneratePersonasUseCase] Starting backstory stream for ${persona.name}...`);
-            for await (const chunk of this.llmService.generatePersonaBackstoryStream(persona)) {
-                fullBackstory += chunk;
-                process.stdout.write(chunk); // Stream to terminal
-            }
-            console.log(`\n[GeneratePersonasUseCase] Completed backstory for ${persona.name}`);
+            console.log(`[GeneratePersonasUseCase] Generating backstory for ${persona.name}...`);
+            const fullBackstory = await this.llmService.generatePersonaBackstory(persona);
+            console.log(`[GeneratePersonasUseCase] Completed backstory for ${persona.name}`);
 
             persona.backstory = fullBackstory;
             completedCount++;
-            completedSubSteps += 4; // Assuming 4 parts were yielded
+            completedSubSteps += 4;
 
             onProgress?.({
                 step: 'GENERATING_BACKSTORIES',
@@ -97,7 +96,7 @@ export class GeneratePersonasUseCase {
                 totalCount,
                 completedSubSteps,
                 totalSubSteps,
-                personas
+                personas: JSON.parse(JSON.stringify(personas))
             });
         })));
 

@@ -2,6 +2,11 @@ import OpenAI from "openai";
 import pLimit from "p-limit";
 import { LlmServicePort } from "@/domain/ports/LlmServicePort";
 import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
+import { PersonaAdapter } from "./PersonaAdapter";
+import { VisionAnalysisAdapter } from "./VisionAnalysisAdapter";
+import { ChatAdapter } from "./ChatAdapter";
+import { Persona } from "@/domain/entities/Persona";
+import { PricingAnalysis } from "@/domain/entities/PricingAnalysis";
 
 /**
  * Lean core implementation of the LlmServicePort that handles LLM plumbing.
@@ -16,7 +21,11 @@ export class LlmServiceImpl implements LlmServicePort {
     public scoutVisionModel: string;
     public extractionModel: string;
     private static requestCount = 0;
-    public static readonly limiter = pLimit(1);
+    public static readonly limiter = pLimit(20); // Increased for better parallelization
+
+    private personaAdapter: PersonaAdapter;
+    private visionAdapter: VisionAnalysisAdapter;
+    private chatAdapter: ChatAdapter;
 
     // OpenRouter Defaults
     private static readonly OR_TEXT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507";
@@ -40,6 +49,10 @@ export class LlmServiceImpl implements LlmServicePort {
         this.visionModel = models.vision;
         this.scoutVisionModel = models.scout;
         this.extractionModel = models.extraction;
+
+        this.personaAdapter = new PersonaAdapter(this);
+        this.visionAdapter = new VisionAnalysisAdapter(this);
+        this.chatAdapter = new ChatAdapter(this);
     }
 
     private sleep(ms: number): Promise<void> {
@@ -56,7 +69,7 @@ export class LlmServiceImpl implements LlmServicePort {
                 const status = (error as { status?: number }).status;
                 const isRetryable = status === 429 || (status !== undefined && status >= 500);
                 if (!isRetryable || i === maxRetries - 1) throw error;
-                const waitTime = Math.pow(2, i) * 5000 + Math.random() * 2000;
+                const waitTime = Math.pow(2, i) * 2000 + Math.random() * 1000;
                 console.warn(`[LlmService] Retry ${i + 1}/${maxRetries} after ${Math.round(waitTime)}ms`);
                 await this.sleep(waitTime);
             }
@@ -76,7 +89,7 @@ export class LlmServiceImpl implements LlmServicePort {
             ? process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY
             : process.env.OLLAMA_API_KEY || "ollama";
 
-        const client = new OpenAI({ baseURL, apiKey: apiKey as string, dangerouslyAllowBrowser: true });
+        const client = new OpenAI({ baseURL, apiKey: apiKey as string, dangerouslyAllowBrowser: true, maxRetries: 0 });
         const providerInstance = createOpenAI({ baseURL, apiKey: apiKey as string });
 
         const models = provider === "ollama"
@@ -100,7 +113,7 @@ export class LlmServiceImpl implements LlmServicePort {
 
     public async createChatCompletion(
         messages: OpenAI.Chat.ChatCompletionMessageParam[],
-        options: { temperature?: number; max_tokens?: number; response_format?: { type: "json_object" | "text" }; model?: string; purpose?: string }
+        options: { temperature?: number; max_tokens?: number | null; response_format?: { type: "json_object" | "text" }; model?: string; purpose?: string }
     ): Promise<string> {
         return this.withRetry(async () => {
             const reqId = ++LlmServiceImpl.requestCount;
@@ -112,22 +125,20 @@ export class LlmServiceImpl implements LlmServicePort {
                 this.client.chat.completions.create({
                     model: options.model || this.textModel,
                     messages,
-                    temperature: options.temperature ?? 0.8,
-                    max_tokens: options.max_tokens ?? null,
+                    temperature: options.temperature ?? 0.7,
+                    max_tokens: options.max_tokens ?? undefined,
                     response_format: options.response_format,
                 }),
             );
 
             console.log(`[LlmService] [Req #${reqId}] [${purpose}] Completed in ${Date.now() - startTime}ms.`);
-            const content = resp?.choices?.[0]?.message?.content;
-            if (!content) throw new Error("No content returned from LLM chat completion");
-            return content;
+            return resp?.choices?.[0]?.message?.content || "";
         });
     }
 
     public async * createChatCompletionStream(
         messages: OpenAI.Chat.ChatCompletionMessageParam[],
-        options: { temperature?: number; max_tokens?: number; response_format?: { type: "json_object" | "text" }; model?: string; purpose?: string }
+        options: { temperature?: number; max_tokens?: number | null; response_format?: { type: "json_object" | "text" }; model?: string; purpose?: string }
     ): AsyncIterable<string> {
         const stream = await this.withRetry(async () => {
             const reqId = ++LlmServiceImpl.requestCount;
@@ -136,8 +147,8 @@ export class LlmServiceImpl implements LlmServicePort {
             return await this.client.chat.completions.create({
                 model: options.model || this.textModel,
                 messages,
-                temperature: options.temperature ?? 0.8,
-                max_tokens: options.max_tokens ?? null,
+                temperature: options.temperature ?? 0.7,
+                max_tokens: options.max_tokens ?? undefined,
                 response_format: options.response_format,
                 stream: true,
             });
@@ -149,18 +160,85 @@ export class LlmServiceImpl implements LlmServicePort {
         }
     }
 
-    // Mock implementations for interface satisfaction (temporary until adapters are fully integrated)
-    async generateInitialPersonas(): Promise<any> { throw new Error("Move to PersonaAdapter"); }
-    async * generateInitialPersonasStream(): AsyncIterable<any> { throw new Error("Move to PersonaAdapter"); }
-    async generatePersonaBackstory(): Promise<any> { throw new Error("Move to PersonaAdapter"); }
-    async * generatePersonaBackstoryStream(): AsyncIterable<any> { throw new Error("Move to PersonaAdapter"); }
-    async decideNextStep(): Promise<any> { throw new Error("Not implemented"); }
-    async analyzeStaticPage(): Promise<any> { throw new Error("Move to VisionAnalysisAdapter"); }
-    async * analyzeStaticPageStream(): AsyncIterable<any> { throw new Error("Move to VisionAnalysisAdapter"); }
-    async extractInsights(): Promise<any> { throw new Error("Move to VisionAnalysisAdapter"); }
-    async isPricingVisible(): Promise<any> { throw new Error("Move to VisionAnalysisAdapter"); }
-    async isPricingVisibleInHtml(): Promise<any> { throw new Error("Move to VisionAnalysisAdapter"); }
-    async chatWithPersona(): Promise<any> { throw new Error("Move to ChatAdapter"); }
-    async * chatWithPersonaStream(): AsyncIterable<any> { throw new Error("Move to ChatAdapter"); }
-    async validatePromptDomain(): Promise<any> { throw new Error("Move to ChatAdapter"); }
+    // --- Domain Gateways (Delegating to Adapters) ---
+
+    async generateInitialPersonas(description: string) {
+        return this.personaAdapter.generateInitialPersonas(description);
+    }
+
+    async * generateInitialPersonasStream(description: string): AsyncIterable<Partial<Persona>[]> {
+        yield* this.personaAdapter.generateInitialPersonasStream(description);
+    }
+
+    async generatePersonaBackstory(persona: Persona | string, onProgress?: (p: number, t: number) => void): Promise<string> {
+        return this.personaAdapter.generatePersonaBackstory(persona, onProgress);
+    }
+
+    async * generatePersonaBackstoryStream(persona: Persona | string): AsyncIterable<string> {
+        yield* this.personaAdapter.generatePersonaBackstoryStream(persona);
+    }
+
+    async generateAbbreviatedBackstory(persona: Persona | string): Promise<string> {
+        return this.personaAdapter.generateAbbreviatedBackstory(persona);
+    }
+
+    async * generateAbbreviatedBackstoryStream(persona: Persona | string): AsyncIterable<string> {
+        yield* this.personaAdapter.generateAbbreviatedBackstoryStream(persona);
+    }
+
+    async isPricingVisible(screenshot: string): Promise<boolean> {
+        return this.visionAdapter.isPricingVisible(screenshot);
+    }
+
+    async isPricingVisibleInHtml(html: string): Promise<boolean> {
+        return this.visionAdapter.isPricingVisibleInHtml(html);
+    }
+
+    async analyzePricingPageStream(persona: Persona, screenshot: string, html?: string): Promise<any> {
+        return this.visionAdapter.analyzePricingPageStream(persona, screenshot, html);
+    }
+
+    async * chatWithPersonaStream(
+        persona: Persona,
+        analysis: PricingAnalysis | null,
+        message: string,
+        history: { role: "user" | "assistant"; content: string }[],
+    ): AsyncIterable<string> {
+        yield* this.chatAdapter.chatWithPersonaStream(persona, analysis, message, history);
+    }
+
+    async validatePromptDomain(persona: Persona, prompt: string): Promise<{ isValid: boolean; reason?: string }> {
+        return this.chatAdapter.validatePromptDomain(persona, prompt);
+    }
+
+    // --- Legacy / Compatibility ---
+
+    async analyzeStaticPage(persona: Persona, screenshot: string): Promise<PricingAnalysis> {
+        throw new Error("analyzeStaticPage is deprecated. Use analyzePricingPageStream instead.");
+    }
+
+    async * analyzeStaticPageStream(persona: Persona, screenshots: string[]): AsyncIterable<string> {
+        // Fallback for logic that still expects a raw string stream
+        const result = await this.analyzePricingPageStream(persona, screenshots[0]);
+        for await (const partial of result.partialObjectStream) {
+            if (partial.thoughts) yield partial.thoughts;
+        }
+    }
+
+    async extractInsights(persona: Persona, rawThoughts: string): Promise<Partial<PricingAnalysis>> {
+        throw new Error("extractInsights is deprecated. Use analyzePricingPageStream for consolidated results.");
+    }
+
+    async chatWithPersona(persona: Persona, analysis: PricingAnalysis | null, msg: string, history: any): Promise<string> {
+        let full = "";
+        for await (const chunk of this.chatWithPersonaStream(persona, analysis, msg, history)) {
+            full += chunk;
+        }
+        return full;
+    }
+
+    async decideNextStep(): Promise<any> {
+        throw new Error("decideNextStep is not implemented in this MVP branch.");
+    }
 }
+

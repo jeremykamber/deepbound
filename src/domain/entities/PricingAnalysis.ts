@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface GazePoint {
     x: number; // 0-100 percentage
     y: number; // 0-100 percentage
@@ -20,6 +22,19 @@ export interface PricingAnalysis {
     gutReaction?: string;
     rawAnalysis?: string;
 }
+
+export const PricingAnalysisSchema = z.object({
+    gutReaction: z.string().describe("A verbatim direct quote (substring) from your raw monologue that best captures your initial reaction."),
+    thoughts: z.string().describe("A blunt, high-level summary of your perspective in exactly 2 paragraphs. Speak in first person."),
+    scores: z.object({
+        clarity: z.number().min(1).max(10).describe("How clear is the pricing?"),
+        valuePerception: z.number().min(1).max(10).describe("How is the perceived value?"),
+        trust: z.number().min(1).max(10).describe("How much do you trust this page?"),
+        likelihoodToBuy: z.number().min(1).max(10).describe("How likely are you to buy?"),
+    }),
+    risks: z.array(z.string()).describe("A list of the specific things that bothered you or felt like risks."),
+});
+
 
 export function validatePricingAnalysis(entity: PricingAnalysis): boolean {
     if (!entity || typeof entity !== "object") return false;

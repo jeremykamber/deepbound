@@ -142,34 +142,42 @@ export class ParsePricingPageUseCase {
           completedCount: finishedCount
         });
 
-        // 1. Unified Vision Analysis (Raw Thoughts) - pure visual
-        let rawThoughts = "";
-        const screenshotsToAnalyze = [capturedScreenshot];
+        // 1. Consolidated Vision Analysis (Thoughts + Structured Data)
+        console.log(`[ParsePricingPageUseCase] Starting consolidated analysis for persona: ${persona.name}...`);
 
-        for await (const chunk of this.llmService.analyzeStaticPageStream(persona, screenshotsToAnalyze)) {
-          if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
-          rawThoughts += chunk;
-          onProgress?.({
-            step: 'THINKING',
-            screenshot: capturedScreenshot,
-            personaName: persona.name,
-            totalCount,
-            completedCount: finishedCount,
-            analysisToken: chunk
-          });
-        }
+        let lastThoughts = "";
+        let finalAnalysisData: any = null;
 
-        // 2. Extract structured insights using a small LLM
-        let analysis: any;
         try {
-          analysis = await this.llmService.extractInsights(persona, rawThoughts);
+          const result = await this.llmService.analyzePricingPageStream(persona, capturedScreenshot, pageHtml);
+
+          for await (const partial of (result as any).partialObjectStream) {
+            if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
+
+            if (partial.thoughts) {
+              const delta = partial.thoughts.slice(lastThoughts.length);
+              if (delta) {
+                onProgress?.({
+                  step: 'THINKING',
+                  screenshot: capturedScreenshot,
+                  personaName: persona.name,
+                  totalCount,
+                  completedCount: finishedCount,
+                  analysisToken: delta
+                });
+                lastThoughts = partial.thoughts;
+              }
+            }
+          }
+
+          finalAnalysisData = await (result as any).object;
         } catch (e) {
-          console.error(`[ParsePricingPageUseCase] Extraction failed for persona ${persona.name}.`, e);
-          analysis = {
+          console.error(`[ParsePricingPageUseCase] Analysis failed for persona ${persona.name}.`, e);
+          finalAnalysisData = {
             gutReaction: "Honestly, I'm having a hard time focusing on this right now.",
-            thoughts: rawThoughts,
+            thoughts: "The analysis failed to complete properly.",
             scores: { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 },
-            risks: ["[VISUAL] Technical difficulty reading the page content"]
+            risks: ["[SYSTEM] Technical difficulty during analysis"]
           };
         }
 
@@ -185,8 +193,8 @@ export class ParsePricingPageUseCase {
 
         // Add metadata and IDs
         const fullAnalysis: PricingAnalysis = {
-          ...analysis,
-          rawAnalysis: rawThoughts,
+          ...finalAnalysisData,
+          rawAnalysis: lastThoughts, // Use the accumulated thoughts as raw analysis
           id: `${persona.id}-${Date.now()}`,
           url,
           screenshotBase64: capturedScreenshot,
@@ -195,7 +203,13 @@ export class ParsePricingPageUseCase {
         // Validate
         if (!validatePricingAnalysis(fullAnalysis)) {
           console.error(`[ParsePricingPageUseCase] Validation failed for persona ${persona.name}.`, JSON.stringify(fullAnalysis, null, 2));
-          throw new Error(`Invalid pricing analysis generated for persona ${persona.name}.`);
+          // fallback to ensure it doesn't crash the whole process
+          fullAnalysis.id = fullAnalysis.id || `${persona.id}-${Date.now()}`;
+          fullAnalysis.url = fullAnalysis.url || url;
+          fullAnalysis.screenshotBase64 = fullAnalysis.screenshotBase64 || capturedScreenshot;
+          fullAnalysis.thoughts = fullAnalysis.thoughts || "Analysis validation failed.";
+          fullAnalysis.scores = fullAnalysis.scores || { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 };
+          fullAnalysis.risks = fullAnalysis.risks || [];
         }
 
         return fullAnalysis;
@@ -206,3 +220,4 @@ export class ParsePricingPageUseCase {
     return analyses;
   }
 }
+

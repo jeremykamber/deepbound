@@ -21,11 +21,11 @@ export async function chatWithPersonaAction(
       const useCase = new ChatWithPersonaUseCase(llmService);
 
       // Guardrail check
-      const validation = await llmService.validatePromptDomain(persona, message);
-      if (!validation.isValid) {
-        stream.done(`GUARDRAIL_VIOLATION: ${validation.reason}`);
-        return;
-      }
+      // const validation = await llmService.validatePromptDomain(persona, message);
+      // if (!validation.isValid) {
+      //   stream.done(`GUARDRAIL_VIOLATION: ${validation.reason}`);
+      //   return;
+      // }
 
       const responseStream = useCase.executeStream(persona, analysis, message, history);
 

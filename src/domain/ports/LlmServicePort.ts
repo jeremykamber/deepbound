@@ -40,6 +40,20 @@ export interface LlmServicePort {
     ): AsyncIterable<string>;
 
     /**
+     * Generates a much shorter, abbreviated backstory in a single LLM call.
+     */
+    generateAbbreviatedBackstory(
+        personaOrDescription: Persona | string,
+    ): Promise<string>;
+
+    /**
+     * Generates an abbreviated backstory (streaming version).
+     */
+    generateAbbreviatedBackstoryStream(
+        personaOrDescription: Persona | string,
+    ): AsyncIterable<string>;
+
+    /**
      * The Brain looks at the screenshot and history, then decides the next move.
      * @param persona The Persona object representing the agent.
      * @param screenshotBase64 A base64-encoded screenshot of the current view.
@@ -133,6 +147,16 @@ export interface LlmServicePort {
     ): AsyncIterable<string>;
 
     /**
+     * Consolidated Analysis: One-pass hybrid grounding (Screenshot + HTML).
+     * Returns a stream that can be parsed as a PricingAnalysis object.
+     */
+    analyzePricingPageStream(
+        persona: Persona,
+        screenshotBase64: string,
+        pageHtml?: string
+    ): Promise<any>; // Using any for the streamObject return type for now to avoid complex type issues in port
+
+    /**
      * Validates if a user's prompt is within the persona's expected domain.
      * Prevents requests for code, poetry, or other general assistant tasks.
      */
@@ -141,3 +165,4 @@ export interface LlmServicePort {
         prompt: string,
     ): Promise<{ isValid: boolean; reason?: string }>;
 }
+

@@ -20,6 +20,8 @@ export interface PersonaGenerationProgress {
 }
 
 export class GeneratePersonasUseCase {
+    private static readonly ABBREVIATE_BACKSTORIES = true; // Toggle this for fast testing
+
     constructor(private llmService: LlmServicePort) { }
 
     async execute(
@@ -51,13 +53,16 @@ export class GeneratePersonasUseCase {
             personas = await this.llmService.generateInitialPersonas(personaDescription);
         }
 
+        const abbreviate = GeneratePersonasUseCase.ABBREVIATE_BACKSTORIES;
+        const subStepsPerPersona = abbreviate ? 1 : 4;
+
         // Broadcast initial personas immediately for UI responsiveness
         onProgress?.({
             step: 'GENERATING_BACKSTORIES',
             personas,
             totalCount: personas.length,
             completedCount: 0,
-            totalSubSteps: personas.length * 4,
+            totalSubSteps: personas.length * subStepsPerPersona,
             completedSubSteps: 0,
             streamingText: ""
         });
@@ -65,7 +70,7 @@ export class GeneratePersonasUseCase {
         const totalCount = personas.length;
         let completedCount = 0;
         let completedSubSteps = 0;
-        const totalSubSteps = totalCount * 4; // 4 parts per backstory
+        const totalSubSteps = totalCount * subStepsPerPersona;
 
         const pLimit = (await import('p-limit')).default;
         const limit = pLimit(2); // Generate 2 backstories in parallel
@@ -82,13 +87,17 @@ export class GeneratePersonasUseCase {
                 streamingText: ""
             });
 
-            console.log(`[GeneratePersonasUseCase] Generating backstory for ${persona.name}...`);
-            const fullBackstory = await this.llmService.generatePersonaBackstory(persona);
+            console.log(`[GeneratePersonasUseCase] Generating ${abbreviate ? 'abbreviated ' : ''}backstory for ${persona.name}...`);
+
+            const backstory = abbreviate
+                ? await this.llmService.generateAbbreviatedBackstory(persona)
+                : await this.llmService.generatePersonaBackstory(persona);
+
             console.log(`[GeneratePersonasUseCase] Completed backstory for ${persona.name}`);
 
-            persona.backstory = fullBackstory;
+            persona.backstory = backstory;
             completedCount++;
-            completedSubSteps += 4;
+            completedSubSteps += subStepsPerPersona;
 
             onProgress?.({
                 step: 'GENERATING_BACKSTORIES',
@@ -103,3 +112,4 @@ export class GeneratePersonasUseCase {
         return personas;
     }
 }
+

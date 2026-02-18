@@ -204,7 +204,6 @@ export const Dashboard: React.FC = () => {
                   step={step}
                   isActive={step.id === analysisProgress?.step}
                   isDone={analysisSteps.findIndex(s => s.id === analysisProgress?.step) > idx}
-                  streamingText={step.id === 'THINKING' ? combinedAnalysisStream : undefined}
                 />
               ))}
             </div>

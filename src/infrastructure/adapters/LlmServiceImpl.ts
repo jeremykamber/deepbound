@@ -27,7 +27,7 @@ export class LlmServiceImpl implements LlmServicePort {
         "qwen/qwen3-30b-a3b-instruct-2507";
     private static readonly OR_SMALL_TEXT_MODEL = "google/gemma-3-4b-it";
     // private static readonly OR_VISION_MODEL = "nvidia/nemotron-nano-12b-v2-vl:free";
-    private static readonly OR_VISION_MODEL = "mistralai/mistral-small-3.1-24b-instruct";
+    private static readonly OR_VISION_MODEL = "qwen/qwen3-vl-8b-instruct";
     private static readonly OR_SCOUT_MODEL =
         "qwen/qwen-2.5-vl-7b-instruct:free";
     private static readonly OR_EXTRACTION_MODEL = "google/gemma-3-4b-it";

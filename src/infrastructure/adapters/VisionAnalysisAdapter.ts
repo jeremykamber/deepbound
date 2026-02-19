@@ -121,3 +121,65 @@ export class VisionAnalysisAdapter {
     return content.toUpperCase().includes("TRUE");
   }
 }
+  /**
+   * Non-streaming Pricing Analysis (AUDIT mode): await the full LLM response, parse/validate result.
+   * On any error, returns a safe PricingAnalysis-like fallback.
+   * Used for pricing audit only (never streams partials).
+   */
+  async analyzePricingPageCompletion(
+    persona: Persona,
+    screenshotBase64: string,
+    pageHtml?: string
+  ) {
+    const system = `You are adopting the persona of a specific individual to evaluate a pricing page.\n\nPERSONA PROFILE:\n${stringifyPersona(persona)}\n\nCONTEXT:\nYou are looking at a pricing page. You have been provided with:\n1. A screenshot of the page (image).\n2. The raw HTML/text content of the page (if available).\n...`;
+
+    const prompt = `Evaluate this pricing page. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n"""\n${pageHtml}\n"""` : ""}`;
+    let lastOutput = '';
+    try {
+      const completion = await this.llmService.createChatCompletion(
+        [
+          {
+            role: "system",
+            content: system,
+          },
+          {
+            role: "user",
+            content: [
+                { type: "text", text: prompt },
+                { type: "image", image: screenshotBase64 },
+            ],
+          },
+        ],
+        {
+          temperature: 0.7,
+          model: this.llmService.visionModel,
+          max_tokens: 2048,
+          purpose: "Pricing Audit",
+        }
+      );
+      lastOutput = typeof completion === 'string' ? completion : JSON.stringify(completion);
+      // Try to JSON.parse; fall back otherwise
+      let analysisObj = null;
+      try {
+        analysisObj = typeof completion === 'object' ? completion : JSON.parse(lastOutput);
+      } catch (parseErr) {
+        analysisObj = null; // fallback below
+      }
+      // Validate
+      if (analysisObj && PricingAnalysisSchema.safeParse(analysisObj).success) {
+        return analysisObj;
+      } else {
+        throw new Error('INVALID_OR_UNPARSABLE_ANALYSIS');
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[audit] LLM/Audit completion error:', e, { lastOutput });
+      }
+      return {
+        gutReaction: "Overall, this audit could not be completed due to a system issue.",
+        thoughts: "An error occurred during pricing analysis.",
+        scores: { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 },
+        risks: ["[SYSTEM] LLM completion or analysis failed"],
+      };
+    }
+  }

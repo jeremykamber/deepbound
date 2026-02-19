@@ -31,7 +31,22 @@ export class ParsePricingPageUseCase {
     private readonly llmService: LlmServicePort
   ) { }
 
-  async execute(url: string, personas: Persona[], onProgress?: (progress: PricingAnalysisProgress) => void, abortSignal?: AbortSignal): Promise<PricingAnalysis[]> {
+/**
+ * Pricing audit/analysis use case — supports both streaming and non-streaming persona analysis.
+ * By default, streams partial thoughts. For pricing audit, disables streaming for full, clean completion per persona.
+ */
+  /**
+   * Main pricing audit (and persona analysis) use case. If nonStreamingAuditMode is true,
+   * disables streaming and uses completion-based audit per persona with robust fallback/error handling.
+   * Otherwise uses streaming for persona analysis.
+   */
+  async execute(
+    url: string,
+    personas: Persona[],
+    onProgress?: (progress: PricingAnalysisProgress) => void,
+    abortSignal?: AbortSignal,
+    nonStreamingAuditMode = false
+  ): Promise<PricingAnalysis[]> {
     // 1. Capture screenshot of the pricing page with adaptive scouting
     console.log(`[ParsePricingPageUseCase] Starting adaptive scouting for ${url}...`);
 
@@ -128,12 +143,12 @@ export class ParsePricingPageUseCase {
           throw new Error('Request cancelled during persona analysis');
         }
 
-        // Reduced stagger since p-limit handles the main congestion
-        if (index > 0) {
+        // Stagger only if running streaming mode (not necessary in completion mode, as LLM load distributed)
+        if (!nonStreamingAuditMode && index > 0) {
           await new Promise(resolve => setTimeout(resolve, Math.min(index * 200, 1000)));
         }
 
-        console.log(`[ParsePricingPageUseCase] Starting analysis for persona: ${persona.name}...`);
+        // Progress & logging
         onProgress?.({
           step: 'THINKING',
           screenshot: capturedScreenshot,
@@ -142,43 +157,67 @@ export class ParsePricingPageUseCase {
           completedCount: finishedCount
         });
 
-        // 1. Consolidated Vision Analysis (Thoughts + Structured Data)
-        console.log(`[ParsePricingPageUseCase] Starting consolidated analysis for persona: ${persona.name}...`);
-
+        let analysisObj: any;
         let lastThoughts = "";
-        let finalAnalysisData: any = null;
 
-        try {
-          const result = await this.llmService.analyzePricingPageStream(persona, capturedScreenshot, pageHtml);
-
-          for await (const partial of (result as any).partialObjectStream) {
-            if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
-
-            if (partial.thoughts) {
-              const delta = partial.thoughts.slice(lastThoughts.length);
-              if (delta) {
-                onProgress?.({
-                  step: 'THINKING',
-                  screenshot: capturedScreenshot,
-                  personaName: persona.name,
-                  totalCount,
-                  completedCount: finishedCount,
-                  analysisToken: delta
-                });
-                lastThoughts = partial.thoughts;
-              }
+        if (nonStreamingAuditMode) {
+          // --- AUDIT/Non-Streaming CODE PATH ---
+          try {
+            console.log(`[ParsePricingPageUseCase] [AUDIT] Starting non-streaming audit for persona: ${persona.name}`);
+            analysisObj = await (this.llmService as any).analyzePricingPageCompletion(
+              persona, capturedScreenshot, pageHtml
+            );
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[ParsePricingPageUseCase] [AUDIT] Audit analysis complete for: ${persona.name}`, analysisObj);
             }
+          } catch (err) {
+            // Defensive fallback handled in adapter already; but catch unexpected errors here
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(`[ParsePricingPageUseCase] [AUDIT] Unexpected error in persona: ${persona.name}`, err);
+            }
+            analysisObj = {
+              gutReaction: "Overall, this audit could not be completed due to a system issue.",
+              thoughts: "An error occurred during pricing analysis.",
+              scores: { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 },
+              risks: ["[SYSTEM] LLM completion or analysis failed"],
+            };
           }
 
-          finalAnalysisData = await (result as any).object;
-        } catch (e) {
-          console.error(`[ParsePricingPageUseCase] Analysis failed for persona ${persona.name}.`, e);
-          finalAnalysisData = {
-            gutReaction: "Honestly, I'm having a hard time focusing on this right now.",
-            thoughts: "The analysis failed to complete properly.",
-            scores: { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 },
-            risks: ["[SYSTEM] Technical difficulty during analysis"]
-          };
+        } else {
+          // --- STREAMING/PERSONA CODE PATH ---
+          try {
+            console.log(`[ParsePricingPageUseCase] Starting streaming analysis for persona: ${persona.name}...`);
+            const result = await (this.llmService as any).analyzePricingPageStream(
+              persona, capturedScreenshot, pageHtml
+            );
+            for await (const partial of (result as any).partialObjectStream) {
+              if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
+
+              if (partial.thoughts) {
+                const delta = partial.thoughts.slice(lastThoughts.length);
+                if (delta) {
+                  onProgress?.({
+                    step: 'THINKING',
+                    screenshot: capturedScreenshot,
+                    personaName: persona.name,
+                    totalCount,
+                    completedCount: finishedCount,
+                    analysisToken: delta
+                  });
+                  lastThoughts = partial.thoughts;
+                }
+              }
+            }
+            analysisObj = await (result as any).object;
+          } catch (e) {
+            console.error(`[ParsePricingPageUseCase] Streaming analysis failed for persona ${persona.name}.`, e);
+            analysisObj = {
+              gutReaction: "Honestly, I'm having a hard time focusing on this right now.",
+              thoughts: "The analysis failed to complete properly.",
+              scores: { clarity: 1, valuePerception: 1, trust: 1, likelihoodToBuy: 1 },
+              risks: ["[SYSTEM] Technical difficulty during analysis"]
+            };
+          }
         }
 
         if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
@@ -193,8 +232,8 @@ export class ParsePricingPageUseCase {
 
         // Add metadata and IDs
         const fullAnalysis: PricingAnalysis = {
-          ...finalAnalysisData,
-          rawAnalysis: lastThoughts, // Use the accumulated thoughts as raw analysis
+          ...analysisObj,
+          rawAnalysis: lastThoughts, // Only for streaming mode; in audit mode, typically empty.
           id: `${persona.id}-${Date.now()}`,
           url,
           screenshotBase64: capturedScreenshot,
@@ -213,11 +252,9 @@ export class ParsePricingPageUseCase {
         }
 
         return fullAnalysis;
-      })
-      )
+      }))
     );
 
     return analyses;
   }
 }
-

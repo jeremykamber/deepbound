@@ -15,7 +15,7 @@ export class VisionAnalysisAdapter {
     screenshotBase64: string,
     pageHtml?: string,
   ) {
-    const system = `You are adopting the persona of a specific individual to evaluate a pricing page.
+    const system = `You are a specialized JSON-only agent evaluating a pricing page as a specific persona.
         
         PERSONA PROFILE:
         ${stringifyPersona(persona)}
@@ -28,6 +28,16 @@ export class VisionAnalysisAdapter {
         TASK:
         Evaluate this page from YOUR perspective. Use your personality, values, and scalars.
         
+        STRICT OUTPUT RULES:
+        - Respond ONLY with a valid JSON object following the provided schema.
+        - Use standard JSON double quotes (") for all keys and string values.
+        - Escape any literal double quotes within strings using a backslash (\").
+        - NO conversational preamble. NO monologue. NO text before or after the JSON.
+        - DO NOT explain your reasoning outside of the JSON fields.
+        - List a MAXIMUM of 10 risks. 
+        - DO NOT repeat yourself. 
+        - If you have nothing more to say, STOP.
+        
         HYBRID GROUNDING RULES:
         - Use the screenshot to gauge visual appeal, layout, and hierarchy.
         - Use the HTML to verify specific prices, plan names, and fine print that might be hard to see in the image.
@@ -38,18 +48,15 @@ export class VisionAnalysisAdapter {
         - NEUROTICISM: If High, look for hidden fees or traps.
         - COGNITIVE REFLEX: If System 1 (Low), focus on emotional reaction. If System 2 (High), calculate unit economics.
         
-        STRICT RULES:
-        - List a MAXIMUM of 10 risks. 
-        - DO NOT repeat yourself. 
-        - If you have nothing more to say, STOP.
-        
-        SPEAK IN FIRST PERSON. Be blunt, honest, and natural.`;
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
 
-    const prompt = `Evaluate this pricing page. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
 
     return streamObject({
       model: this.llmService.provider(this.llmService.visionModel),
       schema: PricingAnalysisSchema,
+      schemaName: "PricingAnalysis",
+      schemaDescription: "A detailed evaluation of a pricing page from a persona's perspective.",
       system,
       messages: [
         {
@@ -63,7 +70,7 @@ export class VisionAnalysisAdapter {
           ],
         },
       ],
-      temperature: 0.7,
+      temperature: 0.1, // Lower temperature to improve consistency and reduce hallucinations/runaways
       maxTokens: 2048,
     } as any);
   }
@@ -137,9 +144,23 @@ export class VisionAnalysisAdapter {
     screenshotBase64: string,
     pageHtml?: string,
   ) {
-    const system = `You are adopting the persona of a specific individual to evaluate a pricing page.\n\nPERSONA PROFILE:\n${stringifyPersona(persona)}\n\nCONTEXT:\nYou are looking at a pricing page. You have been provided with:\n1. A screenshot of the page (image).\n2. The raw HTML/text content of the page (if available).\n...`;
+    const system = `You are a specialized JSON-only agent evaluating a pricing page as a specific persona.
+        
+        PERSONA PROFILE:
+        ${stringifyPersona(persona)}
+        
+        TASK:
+        Evaluate this page from YOUR perspective. Return ONLY a valid JSON object following the PricingAnalysis schema.
+        
+        STRICT OUTPUT RULES:
+        - Respond ONLY with a valid JSON object.
+        - Use standard JSON double quotes (") for all keys and string values.
+        - Escape any literal double quotes within strings using a backslash (\").
+        - NO conversational preamble. NO monologue. NO text before or after the JSON.
+        
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
 
-    const prompt = `Evaluate this pricing page. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n"""\n${pageHtml}\n"""` : ""}`;
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n"""\n${pageHtml}\n"""` : ""}`;
     let lastOutput = "";
     try {
       const completion = await this.llmService.createChatCompletion(
@@ -157,9 +178,10 @@ export class VisionAnalysisAdapter {
           },
         ],
         {
-          temperature: 0.7,
+          temperature: 0.1,
           model: this.llmService.visionModel,
           max_tokens: 2048,
+          response_format: { type: "json_object" },
           purpose: "Pricing Audit",
         },
       );

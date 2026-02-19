@@ -96,10 +96,10 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
             // Accumulate tokens with safety limit for browser stability
             if (update.personaName && update.analysisToken) {
               const currentLength = (accumulatedTexts[update.personaName] || "").length;
-              // Safety check to prevent excessively large strings that could cause browser performance issues or stack overflows
-              if (currentLength < 50000) {
+              // Safety check to prevent excessively large strings (tripled to 150k)
+              if (currentLength < 150000) {
                 accumulatedTexts[update.personaName] = (accumulatedTexts[update.personaName] || "") + update.analysisToken;
-              } else if (currentLength === 50000) {
+              } else if (currentLength === 150000) {
                 accumulatedTexts[update.personaName] += "\n\n[...Token limit reached for preview...]";
               }
             }

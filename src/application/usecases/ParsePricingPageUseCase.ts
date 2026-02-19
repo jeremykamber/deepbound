@@ -192,7 +192,7 @@ export class ParsePricingPageUseCase {
 
             // Set a timeout for the entire persona analysis to prevent indefinite hangs
             const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error(`Timeout: Analysis for ${persona.name} took too long`)), 60000); // 1 minute timeout
+              setTimeout(() => reject(new Error(`Timeout: Analysis for ${persona.name} took too long`)), 180000); // 3 minute timeout (tripled)
             });
 
             const streamPromise = (async () => {
@@ -206,7 +206,7 @@ export class ParsePricingPageUseCase {
                 lastDataTime = Date.now();
 
                 // Emergency break: If a single persona generates too much data, it's likely a runaway loop
-                if (chunkCount > 1000 || lastThoughts.length > 30000) {
+                if (chunkCount > 3000 || lastThoughts.length > 90000) {
                   console.error(`[ParsePricingPageUseCase] Persona ${persona.name}: Emergency break triggered due to excessive data (${chunkCount} chunks, ${lastThoughts.length} chars).`);
                   break;
                 }

@@ -13,9 +13,9 @@ export class VisionAnalysisAdapter {
   async analyzePricingPageStream(
     persona: Persona,
     screenshotBase64: string,
-    pageHtml?: string
+    pageHtml?: string,
   ) {
-    const system = `You are adopting the persona of a specific individual to evaluate a pricing page.
+    const system = `You are a specialized JSON-only agent evaluating a pricing page as a specific persona.
         
         PERSONA PROFILE:
         ${stringifyPersona(persona)}
@@ -28,6 +28,16 @@ export class VisionAnalysisAdapter {
         TASK:
         Evaluate this page from YOUR perspective. Use your personality, values, and scalars.
         
+        STRICT OUTPUT RULES:
+        - Respond ONLY with a valid JSON object following the provided schema.
+        - You MUST include ALL fields: gutReaction, thoughts, scores, and risks.
+        - Use standard JSON double quotes (") for all keys and string values.
+        - Escape any literal double quotes within strings using a backslash (\").
+        - NO conversational preamble. NO text before or after the JSON.
+        - List a MAXIMUM of 10 risks. 
+        - DO NOT repeat yourself. 
+        - If you have nothing more to say, STOP.
+        
         HYBRID GROUNDING RULES:
         - Use the screenshot to gauge visual appeal, layout, and hierarchy.
         - Use the HTML to verify specific prices, plan names, and fine print that might be hard to see in the image.
@@ -38,13 +48,15 @@ export class VisionAnalysisAdapter {
         - NEUROTICISM: If High, look for hidden fees or traps.
         - COGNITIVE REFLEX: If System 1 (Low), focus on emotional reaction. If System 2 (High), calculate unit economics.
         
-        SPEAK IN FIRST PERSON. Be blunt, honest, and natural.`;
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
 
-    const prompt = `Evaluate this pricing page. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
 
     return streamObject({
       model: this.llmService.provider(this.llmService.visionModel),
       schema: PricingAnalysisSchema,
+      schemaName: "PricingAnalysis",
+      schemaDescription: "A detailed evaluation of a pricing page from a persona's perspective.",
       system,
       messages: [
         {
@@ -58,8 +70,9 @@ export class VisionAnalysisAdapter {
           ],
         },
       ],
-      temperature: 0.7,
-    });
+      temperature: 0.4, // Balanced for persona voice vs JSON structure
+      maxTokens: 2048,
+    } as any);
   }
 
   /**
@@ -92,7 +105,8 @@ export class VisionAnalysisAdapter {
         }),
       );
 
-      const content = resp?.choices?.[0]?.message?.content?.toUpperCase().trim() || "FALSE";
+      const content =
+        resp?.choices?.[0]?.message?.content?.toUpperCase().trim() || "FALSE";
       return content.includes("TRUE");
     });
   }
@@ -119,5 +133,92 @@ export class VisionAnalysisAdapter {
     );
 
     return content.toUpperCase().includes("TRUE");
+  }
+  /**
+   * Non-streaming Pricing Analysis (AUDIT mode): await the full LLM response, parse/validate result.
+   * On any error, returns a safe PricingAnalysis-like fallback.
+   * Used for pricing audit only (never streams partials).
+   */
+  async analyzePricingPageCompletion(
+    persona: Persona,
+    screenshotBase64: string,
+    pageHtml?: string,
+  ) {
+    const system = `You are a specialized JSON-only agent evaluating a pricing page as a specific persona.
+        
+        PERSONA PROFILE:
+        ${stringifyPersona(persona)}
+        
+        TASK:
+        Evaluate this page from YOUR perspective. Return ONLY a valid JSON object following the PricingAnalysis schema.
+        
+        STRICT OUTPUT RULES:
+        - Respond ONLY with a valid JSON object.
+        - Use standard JSON double quotes (") for all keys and string values.
+        - Escape any literal double quotes within strings using a backslash (\").
+        - NO conversational preamble. NO monologue. NO text before or after the JSON.
+        
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
+
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n"""\n${pageHtml}\n"""` : ""}`;
+    let lastOutput = "";
+    try {
+      const completion = await this.llmService.createChatCompletion(
+        [
+          {
+            role: "system",
+            content: system,
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image", image: screenshotBase64 },
+            ],
+          },
+        ],
+        {
+          temperature: 0.1,
+          model: this.llmService.visionModel,
+          max_tokens: 2048,
+          response_format: { type: "json_object" },
+          purpose: "Pricing Audit",
+        },
+      );
+      lastOutput =
+        typeof completion === "string"
+          ? completion
+          : JSON.stringify(completion);
+      // Try to JSON.parse; fall back otherwise
+      let analysisObj = null;
+      try {
+        analysisObj =
+          typeof completion === "object" ? completion : JSON.parse(lastOutput);
+      } catch (parseErr) {
+        analysisObj = null; // fallback below
+      }
+      // Validate
+      if (analysisObj && PricingAnalysisSchema.safeParse(analysisObj).success) {
+        return analysisObj;
+      } else {
+        throw new Error("INVALID_OR_UNPARSABLE_ANALYSIS");
+      }
+    } catch (e) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[audit] LLM/Audit completion error:", e, { lastOutput });
+      }
+      return {
+        gutReaction:
+          "Overall, this audit could not be completed due to a system issue.",
+        thoughts: "An error occurred during pricing analysis.",
+        scores: {
+          clarity: 1,
+          valuePerception: 1,
+          trust: 1,
+          likelihoodToBuy: 1,
+        },
+        risks: ["[SYSTEM] LLM completion or analysis failed"],
+      };
+    }
   }
 }

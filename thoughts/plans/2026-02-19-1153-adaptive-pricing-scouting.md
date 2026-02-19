@@ -1,91 +1,97 @@
 # Adaptive Pricing Page Scouting Implementation Plan
 
 ## Overview
-Enhance the pricing page analysis flow by implementing an "adaptive scouting" mechanism. Instead of relying solely on a full-page screenshot, the browser will scroll through the page and uses a lightweight vision model to identify when pricing information is actually visible in the viewport. This ensures the subsequent persona-based analysis is grounded in the most relevant visual context.
+Enhance the pricing page analysis flow by implementing an "adaptive scouting" mechanism. Instead of a blind scroll, the system will use a two-step "guided strike" approach:
+1.  **Targeted Jump**: Use the small text LLM to analyze the HTML and identify specific IDs, selectors, or anchor text where pricing exists.
+2.  **Lazy-Load Approach**: Jump to a 1000px buffer above the target and perform a "stroll" (2 smaller scrolls) to trigger lazy-loaded animations.
+3.  **Vision Verification**: Use a lightweight vision model to confirm the pricing is actually visible before locking in the screenshot.
 
 ## Current State Analysis
 - `ParsePricingPageUseCase` currently performs a single `captureFullPage()` call.
-- It performs an HTML-based check (`isPricingVisibleInHtml`) but proceeds even if it fails.
-- `RemotePlaywrightAdapter` already has `scrollDown` and `captureViewport` capabilities.
-- `VisionAnalysisAdapter` already has `isPricingVisible` (using the `scoutVisionModel`).
+- `isPricingVisibleInHtml` is a simple boolean check.
+- `RemotePlaywrightAdapter` has basic scrolling but needs more granular control (scrollTo, coordinate detection).
 
 ## Desired End State
-The system intelligently "hunts" for pricing on the page by scrolling and looking. Once found, it captures that specific viewport as the primary visual context for analysis.
+The system intelligently "targets" the pricing section using HTML cues, approaches it carefully to handle modern JS animations, and verifies the result with vision.
 
 ### Key Discoveries:
-- `ParsePricingPageUseCase.ts:100`: Existing HTML check.
-- `VisionAnalysisAdapter.ts:81`: Implementation of vision-based pricing check already exists but isn't integrated into the main flow.
-- `RemotePlaywrightAdapter.ts:123`: Scroll logic is available.
+- `VisionAnalysisAdapter.ts:117`: Existing `isPricingVisibleInHtml` can be upgraded to return JSON.
+- `RemotePlaywrightAdapter.ts`: Already handles viewport screenshots and basic scrolling.
 
 ## What We're NOT Doing
 - We are not changing the core analysis prompt or the persona logic.
-- We are not adding complex multi-page navigation (only scrolling on the provided URL).
+- We are not scrolling through multiple sub-pages (only the current URL).
 
 ## Implementation Approach
-1.  **Refine Scouting Loop**: Implement a loop in `ParsePricingPageUseCase` that scrolls down the page in increments (e.g., 800px).
-2.  **Vision Verification**: In each step of the loop, capture the current viewport and ask the `scoutVisionModel` if pricing is visible.
-3.  **Shortcut/Fallback**: Use the HTML check as a "gate" or "booster". If the HTML check is negative, we still scout (as the HTML cleaner might miss JS-heavy pricing components), but we use it to inform progress.
-4.  **Screenshot Capture**: Once the scout model returns `TRUE`, we lock in that screenshot for the rest of the pipeline.
 
-## Phase 1: Implement Scouting Loop in UseCase
+### 1. The "Locator" Upgrade
+Upgrade `isPricingVisibleInHtml` to return:
+```typescript
+interface PricingLocation {
+  found: boolean;
+  selector?: string;   // Likely ID or specific class
+  anchorText?: string; // Unique text like "Choose your plan"
+  reasoning?: string;
+}
+```
+
+### 2. The "Approach" Strategy
+1.  **Calculate Target Y**: Use Playwright to find the coordinate of the `selector` or `anchorText`.
+2.  **The Buffer Jump**: If found, jump to `targetY - 1000px`.
+3.  **The Stroll**: Perform 2 scrolls of ~500px with brief pauses to trigger `IntersectionObserver` callbacks and animations.
+4.  **Confirm**: Capture viewport and run `isPricingVisible` (Vision).
+5.  **Fallback**: If no target found or Vision confirmation fails, fall back to linear scrolling (800px increments).
+
+## Phase 1: Port & Schema Updates
 ### Overview
-Modify `ParsePricingPageUseCase.execute` to include the scrolling and vision-check loop.
+Define the new `PricingLocation` interface and update the service ports.
+
+### Changes Required:
+#### 1. Domain Types
+**File**: `src/domain/ports/LlmServicePort.ts`
+**Changes**: Update `isPricingVisibleInHtml` return type.
+
+#### 2. VisionAnalysisAdapter
+**File**: `src/infrastructure/adapters/VisionAnalysisAdapter.ts`
+**Changes**: Update `isPricingVisibleInHtml` to use a JSON-based prompt and parse the `PricingLocation` response.
+
+## Phase 2: Browser Adapter Enhancements
+### Overview
+Add specialized methods to handle coordinate detection and specific scrolling.
+
+### Changes Required:
+#### 1. BrowserServicePort
+**File**: `src/domain/ports/BrowserServicePort.ts`
+**Changes**: Add `getElementLocation(selector: string, anchorText?: string): Promise<number | null>` and `scrollTo(y: number): Promise<void>`.
+
+#### 2. RemotePlaywrightAdapter
+**File**: `src/infrastructure/adapters/RemotePlaywrightAdapter.ts`
+**Changes**: Implement `getElementLocation` using `page.evaluate` and `scrollTo`.
+
+## Phase 3: Implement Scouting Logic in UseCase
+### Overview
+Assemble the pieces in `ParsePricingPageUseCase.execute`.
 
 ### Changes Required:
 #### 1. ParsePricingPageUseCase
 **File**: `src/application/usecases/ParsePricingPageUseCase.ts`
 **Changes**: 
-- Update the `execute` method to include a scouting loop.
-- Add `maxScrolls` and `scrollIncrement` constants.
-- Integrate `llmService.isPricingVisible`.
-- Fallback to full-page screenshot if scrolling completes without a "hit".
-
-```typescript
-// Proposed Scouting Loop Logic
-let foundVisually = false;
-let scoutingScreenshot = '';
-const maxScrolls = 10;
-const scrollIncrement = 800;
-
-for (let i = 0; i < maxScrolls; i++) {
-  const viewportScreenshot = await this.browserService.captureViewport();
-  const isVisible = await this.llmService.isPricingVisible(viewportScreenshot);
-  
-  if (isVisible) {
-    foundVisually = true;
-    scoutingScreenshot = viewportScreenshot;
-    console.log(`[ParsePricingPageUseCase] Pricing found visually at scroll ${i}`);
-    break;
-  }
-  
-  // Check if we can scroll further (some logic to detect end of page)
-  await this.browserService.scrollDown(scrollIncrement);
-}
-
-capturedScreenshot = foundVisually ? scoutingScreenshot : await this.browserService.captureFullPage();
-```
-
-## Phase 2: Refine Browser Adapter Stability
-### Overview
-Ensure that `scrollDown` and `captureViewport` are performant and wait for any lazy-loaded content to appear.
-
-### Changes Required:
-#### 1. RemotePlaywrightAdapter
-**File**: `src/infrastructure/adapters/RemotePlaywrightAdapter.ts`
-**Changes**: 
-- Ensure `captureViewport` uses a reasonable quality/format for the scouting model.
-- (Optional) Add a check to see if the page has reached the bottom.
+- Implement the "Guided Strike" logic: `HTML Check -> Targeted Jump -> Vision Confirm`.
+- Implement the "Linear Scroll" fallback.
+- Broadcast progress updates during the "scouting" phase.
 
 ## Success Criteria:
 ### Automated:
 - `npm run lint` passes.
-- Unit tests for `ParsePricingPageUseCase` (if any exist) cover the scouting logic.
+- `PricingLocation` JSON parsing is robust against LLM preamble.
 
 ### Manual:
-1. Provide a URL where pricing is "below the fold" (e.g., a long landing page like `Stripe.com` or `Linear.app`).
-2. Observe the logs to see "Scrolling..." and "Pricing found visually...".
-3. Verify that the final analysis uses the screenshot where pricing is centered.
+1. Test on a page with a standard ID (e.g., `<section id="pricing">`).
+2. Test on a page with lazy-loaded tables.
+3. Verify that the "Stroll" pauses allow images to load.
+4. Verify fallback to linear scrolling when HTML analysis fails.
 
 ---
 ## GIT COMMIT MESSAGE
-feat: implement adaptive pricing scouting via scrolling and vision-based detection
+feat: implement targeted pricing scouting with lazy-load approach and vision verification
+

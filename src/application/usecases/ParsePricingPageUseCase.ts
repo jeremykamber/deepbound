@@ -208,9 +208,17 @@ export class ParsePricingPageUseCase {
                 }
               }
             }
+
             analysisObj = await (result as any).object;
+            // Success log
+            if (process.env.NODE_ENV !== 'production') {
+              console.log(`[ParsePricingPageUseCase] Streaming analysis complete for: ${persona.name}`, analysisObj);
+            }
           } catch (e) {
-            console.error(`[ParsePricingPageUseCase] Streaming analysis failed for persona ${persona.name}.`, e);
+            // Improved, atomic error handling for one persona only
+            if (process.env.NODE_ENV !== 'production') {
+              console.error(`[ParsePricingPageUseCase] Streaming analysis failed for persona ${persona.name}:`, e);
+            }
             analysisObj = {
               gutReaction: "Honestly, I'm having a hard time focusing on this right now.",
               thoughts: "The analysis failed to complete properly.",

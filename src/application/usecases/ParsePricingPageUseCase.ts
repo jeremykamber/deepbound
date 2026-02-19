@@ -31,10 +31,10 @@ export class ParsePricingPageUseCase {
     private readonly llmService: LlmServicePort
   ) { }
 
-/**
- * Pricing audit/analysis use case — supports both streaming and non-streaming persona analysis.
- * By default, streams partial thoughts. For pricing audit, disables streaming for full, clean completion per persona.
- */
+  /**
+   * Pricing audit/analysis use case — supports both streaming and non-streaming persona analysis.
+   * By default, streams partial thoughts. For pricing audit, disables streaming for full, clean completion per persona.
+   */
   /**
    * Main pricing audit (and persona analysis) use case. If nonStreamingAuditMode is true,
    * disables streaming and uses completion-based audit per persona with robust fallback/error handling.
@@ -123,7 +123,7 @@ export class ParsePricingPageUseCase {
     console.log(`[ParsePricingPageUseCase] Analyzing from ${personas.length} personas...`);
 
     const pLimit = (await import('p-limit')).default;
-    const limit = pLimit(3);
+    const limit = pLimit(2); // Reduced to 2 to prevent overwhelming vision provider/network
 
     let finishedCount = 0;
     const totalCount = personas.length;
@@ -151,7 +151,6 @@ export class ParsePricingPageUseCase {
         // Progress & logging
         onProgress?.({
           step: 'THINKING',
-          screenshot: capturedScreenshot,
           personaName: persona.name,
           totalCount,
           completedCount: finishedCount
@@ -190,30 +189,52 @@ export class ParsePricingPageUseCase {
             const result = await (this.llmService as any).analyzePricingPageStream(
               persona, capturedScreenshot, pageHtml
             );
-            for await (const partial of (result as any).partialObjectStream) {
-              if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
 
-              if (partial.thoughts) {
-                const delta = partial.thoughts.slice(lastThoughts.length);
-                if (delta) {
-                  onProgress?.({
-                    step: 'THINKING',
-                    screenshot: capturedScreenshot,
-                    personaName: persona.name,
-                    totalCount,
-                    completedCount: finishedCount,
-                    analysisToken: delta
-                  });
-                  lastThoughts = partial.thoughts;
+            // Set a timeout for the entire persona analysis to prevent indefinite hangs
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error(`Timeout: Analysis for ${persona.name} took too long`)), 60000); // 1 minute timeout
+            });
+
+            const streamPromise = (async () => {
+              let chunkCount = 0;
+              let lastDataTime = Date.now();
+
+              for await (const partial of (result as any).partialObjectStream) {
+                if (abortSignal?.aborted) throw new Error('Request cancelled during persona analysis');
+
+                chunkCount++;
+                lastDataTime = Date.now();
+
+                // Emergency break: If a single persona generates too much data, it's likely a runaway loop
+                if (chunkCount > 1000 || lastThoughts.length > 30000) {
+                  console.error(`[ParsePricingPageUseCase] Persona ${persona.name}: Emergency break triggered due to excessive data (${chunkCount} chunks, ${lastThoughts.length} chars).`);
+                  break;
+                }
+
+                // Periodic heartbeat log
+                if (chunkCount % 25 === 0) {
+                  console.log(`[ParsePricingPageUseCase] Persona ${persona.name}: Total chunks so far: ${chunkCount}. (Fields present: ${Object.keys(partial).join(', ')})`);
+                }
+
+                if (partial.thoughts) {
+                  const delta = partial.thoughts.slice(lastThoughts.length);
+                  if (delta) {
+                    onProgress?.({
+                      step: 'THINKING',
+                      personaName: persona.name,
+                      totalCount,
+                      completedCount: finishedCount,
+                      analysisToken: delta
+                    });
+                    lastThoughts = partial.thoughts;
+                  }
                 }
               }
-            }
+              console.log(`[ParsePricingPageUseCase] Persona ${persona.name}: Stream finished after ${chunkCount} chunks. Waiting for full object...`);
+              return await (result as any).object;
+            })();
 
-            analysisObj = await (result as any).object;
-            // Success log
-            if (process.env.NODE_ENV !== 'production') {
-              console.log(`[ParsePricingPageUseCase] Streaming analysis complete for: ${persona.name}`, analysisObj);
-            }
+            analysisObj = await Promise.race([streamPromise, timeoutPromise]);
           } catch (e) {
             // Improved, atomic error handling for one persona only
             if (process.env.NODE_ENV !== 'production') {
@@ -233,7 +254,7 @@ export class ParsePricingPageUseCase {
         finishedCount++;
         onProgress?.({
           step: 'THINKING',
-          screenshot: capturedScreenshot,
+          personaName: persona.name,
           totalCount,
           completedCount: finishedCount
         });

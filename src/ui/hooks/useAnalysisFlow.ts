@@ -57,6 +57,7 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
 
         let lastUpdate = 0;
         const THROTTLE_MS = 150;
+        const accumulatedTexts: Record<string, string> = {};
 
         for await (const update of readStreamableValue(streamData)) {
           if (controller.signal.aborted) {
@@ -92,17 +93,24 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
               return
             }
 
+            // Accumulate tokens with safety limit for browser stability
+            if (update.personaName && update.analysisToken) {
+              const currentLength = (accumulatedTexts[update.personaName] || "").length;
+              // Safety check to prevent excessively large strings that could cause browser performance issues or stack overflows
+              if (currentLength < 50000) {
+                accumulatedTexts[update.personaName] = (accumulatedTexts[update.personaName] || "") + update.analysisToken;
+              } else if (currentLength === 50000) {
+                accumulatedTexts[update.personaName] += "\n\n[...Token limit reached for preview...]";
+              }
+            }
+
             const now = Date.now();
             if (now - lastUpdate > THROTTLE_MS) {
               setAnalysisProgress((prev) => {
-                const newStreams = { ...(prev?.streamingTexts || {}) };
-                if (update.personaName) {
-                  newStreams[update.personaName] = (newStreams[update.personaName] || "") + (update.analysisToken || "");
-                }
                 return {
                   ...update,
                   screenshot: update.screenshot || prev?.screenshot,
-                  streamingTexts: newStreams
+                  streamingTexts: { ...accumulatedTexts }
                 } as AnalysisProgress;
               });
               lastUpdate = now;

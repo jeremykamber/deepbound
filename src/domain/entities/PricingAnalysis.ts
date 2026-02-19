@@ -24,15 +24,15 @@ export interface PricingAnalysis {
 }
 
 export const PricingAnalysisSchema = z.object({
-    gutReaction: z.string().describe("A verbatim direct quote (substring) from your raw monologue that best captures your initial reaction."),
-    thoughts: z.string().describe("A blunt, high-level summary of your perspective in exactly 2 paragraphs. Speak in first person."),
+    gutReaction: z.string().describe("Your initial, visceral reaction to the page in one short sentence. Be blunt and use your personality."),
+    thoughts: z.string().describe("A deep-dive evaluation of the pricing strategy in exactly 2 paragraphs. Speak in first person as the persona."),
     scores: z.object({
         clarity: z.number().min(1).max(10).describe("How clear is the pricing?"),
         valuePerception: z.number().min(1).max(10).describe("How is the perceived value?"),
         trust: z.number().min(1).max(10).describe("How much do you trust this page?"),
         likelihoodToBuy: z.number().min(1).max(10).describe("How likely are you to buy?"),
     }),
-    risks: z.array(z.string()).describe("A list of the specific things that bothered you or felt like risks."),
+    risks: z.array(z.string()).describe("A list of 5-10 specific things that bothered you or felt like risks."),
 });
 
 

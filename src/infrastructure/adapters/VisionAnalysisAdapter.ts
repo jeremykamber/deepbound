@@ -30,10 +30,10 @@ export class VisionAnalysisAdapter {
         
         STRICT OUTPUT RULES:
         - Respond ONLY with a valid JSON object following the provided schema.
+        - You MUST include ALL fields: gutReaction, thoughts, scores, and risks.
         - Use standard JSON double quotes (") for all keys and string values.
         - Escape any literal double quotes within strings using a backslash (\").
-        - NO conversational preamble. NO monologue. NO text before or after the JSON.
-        - DO NOT explain your reasoning outside of the JSON fields.
+        - NO conversational preamble. NO text before or after the JSON.
         - List a MAXIMUM of 10 risks. 
         - DO NOT repeat yourself. 
         - If you have nothing more to say, STOP.
@@ -70,7 +70,7 @@ export class VisionAnalysisAdapter {
           ],
         },
       ],
-      temperature: 0.1, // Lower temperature to improve consistency and reduce hallucinations/runaways
+      temperature: 0.4, // Balanced for persona voice vs JSON structure
       maxTokens: 2048,
     } as any);
   }

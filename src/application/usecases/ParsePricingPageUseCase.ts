@@ -120,6 +120,11 @@ export class ParsePricingPageUseCase {
           await this.browserService.scrollDown(500);
           await this.browserService.scrollDown(500);
 
+          // B. Add small offset to center the pricing roughly
+          const CENTER_OFFSET = 160; // 20% of 800px viewport
+          console.log(`[ParsePricingPageUseCase] Centering pricing viewport...`);
+          await this.browserService.scrollDown(CENTER_OFFSET);
+
           // D. Vision Verification
           const viewportShot = await this.browserService.captureViewport();
           lastScoutingViewport = viewportShot;
@@ -144,6 +149,7 @@ export class ParsePricingPageUseCase {
 
         const MAX_SCROLLS = 15;
         const SCROLL_AMOUNT = 800;
+        const CENTER_OFFSET = 160; // 20% of 800px viewport
 
         for (let i = 0; i < MAX_SCROLLS; i++) {
           const viewport = await this.browserService.captureViewport();
@@ -155,6 +161,13 @@ export class ParsePricingPageUseCase {
           if (isVisible) {
             foundViaVision = true;
             console.log(`[ParsePricingPageUseCase] Found pricing via linear scan at step ${i}`);
+
+            // Scroll a bit more to center the pricing for the final analysis screenshot
+            console.log(`[ParsePricingPageUseCase] Centering pricing for final capture...`);
+            await this.browserService.scrollDown(CENTER_OFFSET);
+            lastScoutingViewport = await this.browserService.captureViewport();
+            onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
+
             break;
           }
 

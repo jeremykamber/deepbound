@@ -6,6 +6,13 @@ export type AgentAction =
     | { type: "TYPE"; selector: string; text: string; reasoning: string }
     | { type: "FINISH"; report: string };
 
+export interface PricingLocation {
+    found: boolean;
+    selector?: string;   // Likely ID or specific class
+    anchorText?: string; // Unique text like "Choose your plan"
+    reasoning?: string;
+}
+
 export interface LlmServicePort {
     /**
      * Generates an array of initial personas based on the provided persona description.
@@ -106,7 +113,7 @@ export interface LlmServicePort {
     /**
      * Checks if pricing elements are visible in the provided HTML/text.
      */
-    isPricingVisibleInHtml(html: string): Promise<boolean>;
+    isPricingVisibleInHtml(html: string): Promise<PricingLocation>;
 
     /**
      * Chat with a persona about their analysis.

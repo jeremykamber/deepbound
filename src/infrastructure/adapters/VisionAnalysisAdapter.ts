@@ -2,6 +2,7 @@ import { Persona, stringifyPersona } from "@/domain/entities/Persona";
 import { PricingAnalysisSchema } from "@/domain/entities/PricingAnalysis";
 import { LlmServiceImpl } from "./LlmServiceImpl";
 import { streamObject } from "ai";
+import { PricingLocation } from "@/domain/ports/LlmServicePort";
 
 export class VisionAnalysisAdapter {
   constructor(private llmService: LlmServiceImpl) { }
@@ -114,25 +115,43 @@ export class VisionAnalysisAdapter {
   /**
    * Checks if pricing elements are visible in the provided HTML/text.
    */
-  async isPricingVisibleInHtml(html: string): Promise<boolean> {
+  async isPricingVisibleInHtml(html: string): Promise<PricingLocation> {
     const prompt = `Analyze if the following text contains pricing information (plans, prices, etc.).
         
         TEXT:
         \"\"\"\n${html}\n\"\"\"
         
-        Return ONLY "TRUE" or "FALSE".`;
+        Return a JSON object with the following structure:
+        {
+          "found": boolean,
+          "selector": string | null, // A likely ID or unique class for the pricing section if identifiable (e.g., "#pricing", ".plans").
+          "anchorText": string | null, // Unique text near the pricing top (e.g. "Choose your plan", "Monthly Billing").
+          "reasoning": string // Brief explanation.
+        }
+        
+        Return ONLY valid JSON.`;
 
     const content = await this.llmService.createChatCompletion(
       [{ role: "user", content: prompt }],
       {
         temperature: 0,
         model: this.llmService.smallTextModel,
-        max_tokens: 10,
+        response_format: { type: "json_object" },
         purpose: "Scouting HTML",
       },
     );
 
-    return content.toUpperCase().includes("TRUE");
+    try {
+      const result = JSON.parse(content);
+      return {
+        found: !!result.found,
+        selector: result.selector || undefined,
+        anchorText: result.anchorText || undefined,
+        reasoning: result.reasoning
+      };
+    } catch (e) {
+      return { found: false, reasoning: "Failed to parse LLM response" };
+    }
   }
   /**
    * Non-streaming Pricing Analysis (AUDIT mode): await the full LLM response, parse/validate result.

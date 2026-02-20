@@ -52,6 +52,7 @@ export class ParsePricingPageUseCase {
 
     let capturedScreenshot = '';
     let pageHtml = '';
+    let lastScoutingViewport = '';
 
     try {
       // Initialize temp directory for live screenshots
@@ -88,20 +89,88 @@ export class ParsePricingPageUseCase {
         }
       );
 
-      // 1. Capture high-quality full-page screenshot
-      capturedScreenshot = await this.browserService.captureFullPage();
+      // 1. Initial Viewport Capture (Baseline)
+      console.log(`[ParsePricingPageUseCase] Capturing initial viewport...`);
+      lastScoutingViewport = await this.browserService.captureViewport();
+      onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
 
-      onProgress?.({ step: 'FINDING_PRICING', screenshot: capturedScreenshot });
-
-      // 2. Get cleaned HTML/Text for grounding the vision models
+      // 2. Get cleaned HTML for "Locator" strategy
       pageHtml = await this.browserService.getCleanedHtml();
 
-      // 3. One-shot check for pricing visibility in HTML
-      const foundPricing = await this.llmService.isPricingVisibleInHtml(pageHtml);
+      // 3. Ask LLM to locate pricing in HTML
+      const pricingLocation = await this.llmService.isPricingVisibleInHtml(pageHtml);
+      let foundViaVision = false;
 
-      if (!foundPricing) {
-        console.warn(`[ParsePricingPageUseCase] Pricing not detected in HTML. Proceeding with caution.`);
+      // --- STRATEGY A: GUIDED STRIKE ---
+      if (pricingLocation.found && (pricingLocation.selector || pricingLocation.anchorText)) {
+        console.log(`[ParsePricingPageUseCase] 🎯 Targeted Strike: ${pricingLocation.reasoning}`);
+        console.log(`[ParsePricingPageUseCase] Aiming for: ${pricingLocation.selector || pricingLocation.anchorText}`);
+
+        // A. Targeted Jump
+        const targetY = await this.browserService.getElementLocation(pricingLocation.selector, pricingLocation.anchorText);
+
+        if (targetY !== null) {
+          // B. The Buffer Jump (1000px above)
+          const bufferY = Math.max(0, targetY - 1000);
+          console.log(`[ParsePricingPageUseCase] Jumping to Y=${bufferY} (Target: ${targetY})`);
+          await this.browserService.scrollTo(bufferY);
+
+          // C. The Stroll (Trigger lazy loads)
+          console.log(`[ParsePricingPageUseCase] Strolling to trigger lazy content...`);
+          await this.browserService.scrollDown(500);
+          await this.browserService.scrollDown(500);
+
+          // D. Vision Verification
+          const viewportShot = await this.browserService.captureViewport();
+          lastScoutingViewport = viewportShot;
+
+          // Send live update
+          onProgress?.({ step: 'FINDING_PRICING', screenshot: viewportShot });
+
+          foundViaVision = await this.llmService.isPricingVisible(viewportShot);
+          console.log(`[ParsePricingPageUseCase] Vision Confirmation: ${foundViaVision ? 'POSITIVE' : 'NEGATIVE'}`);
+        } else {
+          console.warn(`[ParsePricingPageUseCase] Target element not found in DOM.`);
+        }
+      } else {
+        console.log(`[ParsePricingPageUseCase] No specific target found in HTML. Proceeding to fallback.`);
       }
+
+      // --- STRATEGY B: FALLBACK LINEAR SCAN ---
+      if (!foundViaVision) {
+        console.log(`[ParsePricingPageUseCase] 🔄 Starting Linear Scroll Scan...`);
+        // Reset to top to start clean
+        await this.browserService.scrollTo(0);
+
+        const MAX_SCROLLS = 6;
+        const SCROLL_AMOUNT = 800;
+
+        for (let i = 0; i < MAX_SCROLLS; i++) {
+          const viewport = await this.browserService.captureViewport();
+          lastScoutingViewport = viewport;
+          onProgress?.({ step: 'FINDING_PRICING', screenshot: viewport });
+
+          // Check vision
+          const isVisible = await this.llmService.isPricingVisible(viewport);
+          if (isVisible) {
+            foundViaVision = true;
+            console.log(`[ParsePricingPageUseCase] Found pricing via linear scan at step ${i}`);
+            break;
+          }
+
+          // Scroll
+          await this.browserService.scrollDown(SCROLL_AMOUNT);
+        }
+      }
+
+      // 4. Final Capture (Hydrated Page)
+      // Now that we've scrolled and triggered everything, capture the full page for analysis.
+      // This ensures the final analysis has the fully rendered content.
+      capturedScreenshot = await this.browserService.captureFullPage();
+
+      // We don't broadcast the full-page shot here as it looks weird in the UI.
+      // The UI will keep showing the last viewport shot until analysis starts.
+      onProgress?.({ step: 'THINKING' });
 
     } finally {
       // Ensure browser is closed even if scouting fails
@@ -131,7 +200,6 @@ export class ParsePricingPageUseCase {
     // Initial broadcast
     onProgress?.({
       step: 'THINKING',
-      screenshot: capturedScreenshot,
       totalCount,
       completedCount: 0
     });
@@ -265,7 +333,7 @@ export class ParsePricingPageUseCase {
           rawAnalysis: lastThoughts, // Only for streaming mode; in audit mode, typically empty.
           id: `${persona.id}-${Date.now()}`,
           url,
-          screenshotBase64: capturedScreenshot,
+          screenshotBase64: lastScoutingViewport || capturedScreenshot, // Use the targeted viewport for UI, fallback to full page if needed
         };
 
         // Validate

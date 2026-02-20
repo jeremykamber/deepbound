@@ -58,8 +58,8 @@ const PDF_THEME = {
 ```
 
 ### Success Criteria:
-* **Automated**: `npm run lint` passes without standard style errors.
-* **Manual**: The generated PDF visually reads as DeepBound-branded, appearing as `#0A0A0A` rather than true `#000000` with correctly subdued muted text (`#9CA3AF`).
+* [x] **Automated**: `npm run lint` passes without standard style errors.
+* [x] **Manual**: The generated PDF visually reads as DeepBound-branded, appearing as `#0A0A0A` rather than true `#000000` with correctly subdued muted text (`#9CA3AF`).
 
 ---
 
@@ -84,8 +84,8 @@ const PersonaAnalysisPage: React.FC<{ persona: Persona, analysis: PricingAnalysi
 ```
 
 ### Success Criteria:
-* **Automated**: TypeScript compilation succeeds (`tsc --noEmit`).
-* **Manual**: Produce a full PDF via the application UI and verify identical functional content but cleaner code architecture compared to the original code.
+* [x] **Automated**: TypeScript compilation succeeds (`tsc --noEmit`).
+* [ ] **Manual**: Produce a full PDF via the application UI and verify identical functional content but cleaner code architecture compared to the original code.
 
 ## Testing Strategy
 * **Unit Tests**: Confirm the `PDFDownloadLink` wrapper in `AnalysisResultView.tsx` mounts successfully.

@@ -142,7 +142,7 @@ export class ParsePricingPageUseCase {
         // Reset to top to start clean
         await this.browserService.scrollTo(0);
 
-        const MAX_SCROLLS = 6;
+        const MAX_SCROLLS = 15;
         const SCROLL_AMOUNT = 800;
 
         for (let i = 0; i < MAX_SCROLLS; i++) {
@@ -228,6 +228,8 @@ export class ParsePricingPageUseCase {
           totalCount,
           completedCount: finishedCount
         });
+
+        console.log(`[ParsePricingPageUseCase] Persona ${persona.name}: Analyzing with Compacted HTML (${pageHtml?.length || 0} chars) and Viewport Screenshot.`);
 
         let analysisObj: any;
         let lastThoughts = "";

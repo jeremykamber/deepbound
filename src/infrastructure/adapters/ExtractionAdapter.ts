@@ -22,6 +22,7 @@ ${html}
 
 Return ONLY the markdown summary. DO NOT include any conversational preamble.`;
 
+    console.log(`[ExtractionAdapter] Summarizing HTML (${html.length} chars)...`);
     const content = await this.llmService.createChatCompletion(
       [{ role: "user", content: prompt }],
       {
@@ -31,6 +32,7 @@ Return ONLY the markdown summary. DO NOT include any conversational preamble.`;
       }
     );
 
+    console.log(`[ExtractionAdapter] Compacted Summary:\n---\n${content}\n---`);
     return content;
   }
 }

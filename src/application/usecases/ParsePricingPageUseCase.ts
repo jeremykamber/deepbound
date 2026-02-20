@@ -45,8 +45,13 @@ export class ParsePricingPageUseCase {
     personas: Persona[],
     onProgress?: (progress: PricingAnalysisProgress) => void,
     abortSignal?: AbortSignal,
-    nonStreamingAuditMode = false
+    options: {
+      nonStreamingAuditMode?: boolean;
+      imageBase64?: string;
+    } = {}
   ): Promise<PricingAnalysis[]> {
+    const nonStreamingAuditMode = options.nonStreamingAuditMode ?? false;
+
     // 1. Capture screenshot of the pricing page with adaptive scouting
     console.log(`[ParsePricingPageUseCase] Starting adaptive scouting for ${url}...`);
 
@@ -54,150 +59,157 @@ export class ParsePricingPageUseCase {
     let pageHtml = '';
     let lastScoutingViewport = '';
 
-    try {
-      // Initialize temp directory for live screenshots
-      this.tempDir = path.join(os.tmpdir(), `pricing-live-${Date.now()}`);
-      await fs.mkdir(this.tempDir, { recursive: true });
-      console.log(`[ParsePricingPageUseCase] Created temp dir: ${this.tempDir}`);
+    if (options.imageBase64) {
+      console.log(`[ParsePricingPageUseCase] Skipping browser scouting, using provided image...`);
+      capturedScreenshot = options.imageBase64;
+      lastScoutingViewport = options.imageBase64;
+      onProgress?.({ step: 'THINKING' });
+    } else {
+      try {
+        // Initialize temp directory for live screenshots
+        this.tempDir = path.join(os.tmpdir(), `pricing-live-${Date.now()}`);
+        await fs.mkdir(this.tempDir, { recursive: true });
+        console.log(`[ParsePricingPageUseCase] Created temp dir: ${this.tempDir}`);
 
-      // Check if already cancelled
-      if (abortSignal?.aborted) {
-        throw new Error('Request cancelled before starting');
-      }
+        // Check if already cancelled
+        if (abortSignal?.aborted) {
+          throw new Error('Request cancelled before starting');
+        }
 
-      await this.browserService.navigateTo(
-        url,
-        (status) => {
-          if (abortSignal?.aborted) return;
-          if (status === 'SETTING_UP') onProgress?.({ step: 'STARTING' });
-          if (status === 'LOADING_WEBSITE') onProgress?.({ step: 'OPENING_PAGE' });
-        },
-        async (liveScreenshotBase64) => {
-          if (abortSignal?.aborted) return;
-          // Handle live screenshot: save to temp file and notify
-          const screenshotPath = path.join(this.tempDir!, `live-${Date.now()}.jpg`);
-          const buffer = Buffer.from(liveScreenshotBase64, 'base64');
-          await fs.writeFile(screenshotPath, buffer);
+        await this.browserService.navigateTo(
+          url,
+          (status) => {
+            if (abortSignal?.aborted) return;
+            if (status === 'SETTING_UP') onProgress?.({ step: 'STARTING' });
+            if (status === 'LOADING_WEBSITE') onProgress?.({ step: 'OPENING_PAGE' });
+          },
+          async (liveScreenshotBase64) => {
+            if (abortSignal?.aborted) return;
+            // Handle live screenshot: save to temp file and notify
+            const screenshotPath = path.join(this.tempDir!, `live-${Date.now()}.jpg`);
+            const buffer = Buffer.from(liveScreenshotBase64, 'base64');
+            await fs.writeFile(screenshotPath, buffer);
 
-          // Delete previous temp screenshot
-          if (this.lastTempScreenshotPath) {
-            await fs.unlink(this.lastTempScreenshotPath).catch(() => { });
+            // Delete previous temp screenshot
+            if (this.lastTempScreenshotPath) {
+              await fs.unlink(this.lastTempScreenshotPath).catch(() => { });
+            }
+
+            this.lastTempScreenshotPath = screenshotPath;
+            onProgress?.({ step: 'OPENING_PAGE', screenshot: liveScreenshotBase64 });
           }
+        );
 
-          this.lastTempScreenshotPath = screenshotPath;
-          onProgress?.({ step: 'OPENING_PAGE', screenshot: liveScreenshotBase64 });
-        }
-      );
+        // 1. Initial Viewport Capture (Baseline)
+        console.log(`[ParsePricingPageUseCase] Capturing initial viewport...`);
+        lastScoutingViewport = await this.browserService.captureViewport();
+        onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
 
-      // 1. Initial Viewport Capture (Baseline)
-      console.log(`[ParsePricingPageUseCase] Capturing initial viewport...`);
-      lastScoutingViewport = await this.browserService.captureViewport();
-      onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
+        // 2. Get cleaned HTML for "Locator" strategy
+        pageHtml = await this.browserService.getCleanedHtml();
 
-      // 2. Get cleaned HTML for "Locator" strategy
-      pageHtml = await this.browserService.getCleanedHtml();
+        // 3. Ask LLM to locate pricing in HTML
+        const pricingLocation = await this.llmService.isPricingVisibleInHtml(pageHtml);
+        let foundViaVision = false;
 
-      // 3. Ask LLM to locate pricing in HTML
-      const pricingLocation = await this.llmService.isPricingVisibleInHtml(pageHtml);
-      let foundViaVision = false;
+        // --- STRATEGY A: GUIDED STRIKE ---
+        if (pricingLocation.found && (pricingLocation.selector || pricingLocation.anchorText)) {
+          console.log(`[ParsePricingPageUseCase] 🎯 Targeted Strike: ${pricingLocation.reasoning}`);
+          console.log(`[ParsePricingPageUseCase] Aiming for: ${pricingLocation.selector || pricingLocation.anchorText}`);
 
-      // --- STRATEGY A: GUIDED STRIKE ---
-      if (pricingLocation.found && (pricingLocation.selector || pricingLocation.anchorText)) {
-        console.log(`[ParsePricingPageUseCase] 🎯 Targeted Strike: ${pricingLocation.reasoning}`);
-        console.log(`[ParsePricingPageUseCase] Aiming for: ${pricingLocation.selector || pricingLocation.anchorText}`);
+          // A. Targeted Jump
+          const targetY = await this.browserService.getElementLocation(pricingLocation.selector, pricingLocation.anchorText);
 
-        // A. Targeted Jump
-        const targetY = await this.browserService.getElementLocation(pricingLocation.selector, pricingLocation.anchorText);
+          if (targetY !== null) {
+            // B. The Buffer Jump (1000px above)
+            const bufferY = Math.max(0, targetY - 1000);
+            console.log(`[ParsePricingPageUseCase] Jumping to Y=${bufferY} (Target: ${targetY})`);
+            await this.browserService.scrollTo(bufferY);
 
-        if (targetY !== null) {
-          // B. The Buffer Jump (1000px above)
-          const bufferY = Math.max(0, targetY - 1000);
-          console.log(`[ParsePricingPageUseCase] Jumping to Y=${bufferY} (Target: ${targetY})`);
-          await this.browserService.scrollTo(bufferY);
+            // C. The Stroll (Trigger lazy loads)
+            console.log(`[ParsePricingPageUseCase] Strolling to trigger lazy content...`);
+            await this.browserService.scrollDown(500);
+            await this.browserService.scrollDown(500);
 
-          // C. The Stroll (Trigger lazy loads)
-          console.log(`[ParsePricingPageUseCase] Strolling to trigger lazy content...`);
-          await this.browserService.scrollDown(500);
-          await this.browserService.scrollDown(500);
-
-          // B. Add small offset to center the pricing roughly
-          const CENTER_OFFSET = 160; // 20% of 800px viewport
-          console.log(`[ParsePricingPageUseCase] Centering pricing viewport...`);
-          await this.browserService.scrollDown(CENTER_OFFSET);
-
-          // D. Vision Verification
-          const viewportShot = await this.browserService.captureViewport();
-          lastScoutingViewport = viewportShot;
-
-          // Send live update
-          onProgress?.({ step: 'FINDING_PRICING', screenshot: viewportShot });
-
-          foundViaVision = await this.llmService.isPricingVisible(viewportShot);
-          console.log(`[ParsePricingPageUseCase] Vision Confirmation: ${foundViaVision ? 'POSITIVE' : 'NEGATIVE'}`);
-        } else {
-          console.warn(`[ParsePricingPageUseCase] Target element not found in DOM.`);
-        }
-      } else {
-        console.log(`[ParsePricingPageUseCase] No specific target found in HTML. Proceeding to fallback.`);
-      }
-
-      // --- STRATEGY B: FALLBACK LINEAR SCAN ---
-      if (!foundViaVision) {
-        console.log(`[ParsePricingPageUseCase] 🔄 Starting Linear Scroll Scan...`);
-        // Reset to top to start clean
-        await this.browserService.scrollTo(0);
-
-        const MAX_SCROLLS = 15;
-        const SCROLL_AMOUNT = 800;
-        const CENTER_OFFSET = 160; // 20% of 800px viewport
-
-        for (let i = 0; i < MAX_SCROLLS; i++) {
-          const viewport = await this.browserService.captureViewport();
-          lastScoutingViewport = viewport;
-          onProgress?.({ step: 'FINDING_PRICING', screenshot: viewport });
-
-          // Check vision
-          const isVisible = await this.llmService.isPricingVisible(viewport);
-          if (isVisible) {
-            foundViaVision = true;
-            console.log(`[ParsePricingPageUseCase] Found pricing via linear scan at step ${i}`);
-
-            // Scroll a bit more to center the pricing for the final analysis screenshot
-            console.log(`[ParsePricingPageUseCase] Centering pricing for final capture...`);
+            // B. Add small offset to center the pricing roughly
+            const CENTER_OFFSET = 160; // 20% of 800px viewport
+            console.log(`[ParsePricingPageUseCase] Centering pricing viewport...`);
             await this.browserService.scrollDown(CENTER_OFFSET);
-            lastScoutingViewport = await this.browserService.captureViewport();
-            onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
 
-            break;
+            // D. Vision Verification
+            const viewportShot = await this.browserService.captureViewport();
+            lastScoutingViewport = viewportShot;
+
+            // Send live update
+            onProgress?.({ step: 'FINDING_PRICING', screenshot: viewportShot });
+
+            foundViaVision = await this.llmService.isPricingVisible(viewportShot);
+            console.log(`[ParsePricingPageUseCase] Vision Confirmation: ${foundViaVision ? 'POSITIVE' : 'NEGATIVE'}`);
+          } else {
+            console.warn(`[ParsePricingPageUseCase] Target element not found in DOM.`);
           }
-
-          // Scroll
-          await this.browserService.scrollDown(SCROLL_AMOUNT);
+        } else {
+          console.log(`[ParsePricingPageUseCase] No specific target found in HTML. Proceeding to fallback.`);
         }
-      }
 
-      // 4. Final Capture (Hydrated Page at Scrolled Position)
-      // Capture the DOM state after scrolling has triggered lazy loads/animations
-      const finalHtml = await this.browserService.getCleanedHtml();
+        // --- STRATEGY B: FALLBACK LINEAR SCAN ---
+        if (!foundViaVision) {
+          console.log(`[ParsePricingPageUseCase] 🔄 Starting Linear Scroll Scan...`);
+          // Reset to top to start clean
+          await this.browserService.scrollTo(0);
 
-      // Compact the HTML into an objective summary
-      onProgress?.({ step: 'THINKING' }); // Start thinking earlier while summarization happens
-      console.log(`[ParsePricingPageUseCase] Compacting HTML...`);
-      const compactedHtml = await this.llmService.summarizeHtml(finalHtml);
-      console.log(`[ParsePricingPageUseCase] HTML Compacting complete.`);
+          const MAX_SCROLLS = 15;
+          const SCROLL_AMOUNT = 800;
+          const CENTER_OFFSET = 160; // 20% of 800px viewport
 
-      // Use the last targeted viewport instead of full page
-      capturedScreenshot = lastScoutingViewport;
-      pageHtml = compactedHtml; // Replace the raw HTML with the summary for downstream analysis
+          for (let i = 0; i < MAX_SCROLLS; i++) {
+            const viewport = await this.browserService.captureViewport();
+            lastScoutingViewport = viewport;
+            onProgress?.({ step: 'FINDING_PRICING', screenshot: viewport });
 
-    } finally {
-      // Ensure browser is closed even if scouting fails
-      await this.browserService.close();
+            // Check vision
+            const isVisible = await this.llmService.isPricingVisible(viewport);
+            if (isVisible) {
+              foundViaVision = true;
+              console.log(`[ParsePricingPageUseCase] Found pricing via linear scan at step ${i}`);
 
-      // Clean up temp directory
-      if (this.tempDir) {
-        await fs.rm(this.tempDir, { recursive: true, force: true }).catch(() => { });
-        console.log(`[ParsePricingPageUseCase] Cleaned up temp dir: ${this.tempDir}`);
+              // Scroll a bit more to center the pricing for the final analysis screenshot
+              console.log(`[ParsePricingPageUseCase] Centering pricing for final capture...`);
+              await this.browserService.scrollDown(CENTER_OFFSET);
+              lastScoutingViewport = await this.browserService.captureViewport();
+              onProgress?.({ step: 'FINDING_PRICING', screenshot: lastScoutingViewport });
+
+              break;
+            }
+
+            // Scroll
+            await this.browserService.scrollDown(SCROLL_AMOUNT);
+          }
+        }
+
+        // 4. Final Capture (Hydrated Page at Scrolled Position)
+        // Capture the DOM state after scrolling has triggered lazy loads/animations
+        const finalHtml = await this.browserService.getCleanedHtml();
+
+        // Compact the HTML into an objective summary
+        onProgress?.({ step: 'THINKING' }); // Start thinking earlier while summarization happens
+        console.log(`[ParsePricingPageUseCase] Compacting HTML...`);
+        const compactedHtml = await this.llmService.summarizeHtml(finalHtml);
+        console.log(`[ParsePricingPageUseCase] HTML Compacting complete.`);
+
+        // Use the last targeted viewport instead of full page
+        capturedScreenshot = lastScoutingViewport;
+        pageHtml = compactedHtml; // Replace the raw HTML with the summary for downstream analysis
+
+      } finally {
+        // Ensure browser is closed even if scouting fails
+        await this.browserService.close();
+
+        // Clean up temp directory
+        if (this.tempDir) {
+          await fs.rm(this.tempDir, { recursive: true, force: true }).catch(() => { });
+          console.log(`[ParsePricingPageUseCase] Cleaned up temp dir: ${this.tempDir}`);
+        }
       }
     }
 

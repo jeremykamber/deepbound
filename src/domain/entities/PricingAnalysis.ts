@@ -42,13 +42,15 @@ export function validatePricingAnalysis(entity: PricingAnalysis): boolean {
     // id
     if (!entity.id || typeof entity.id !== "string") return false;
 
-    // url - must be a non-empty valid URL
+    // url - must be a non-empty valid URL or "Manual Upload"
     if (!entity.url || typeof entity.url !== "string") return false;
-    try {
-        // eslint-disable-next-line no-new
-        new URL(entity.url);
-    } catch (e) {
-        return false;
+    if (entity.url !== "Manual Upload" && !entity.url.startsWith("uploaded://")) {
+        try {
+            // eslint-disable-next-line no-new
+            new URL(entity.url);
+        } catch (e) {
+            return false;
+        }
     }
 
     // screenshotBase64 - must be a non-empty string (basic check)

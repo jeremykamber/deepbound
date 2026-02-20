@@ -12,6 +12,7 @@ export async function analyzePricingPageAction(
     url: string,
     personas: Persona[],
     requestId?: string,
+    imageBase64?: string,
 ) {
     const id = requestId || `pricing-${Date.now()}`;
     const abortController = cancellationManager.createRequest(id);
@@ -45,6 +46,7 @@ export async function analyzePricingPageAction(
                     }
                 },
                 abortSignal,
+                { imageBase64 }
             );
 
             if (!abortSignal.aborted) {

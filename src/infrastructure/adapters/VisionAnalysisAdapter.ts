@@ -49,7 +49,13 @@ export class VisionAnalysisAdapter {
         - NEUROTICISM: If High, look for hidden fees or traps.
         - COGNITIVE REFLEX: If System 1 (Low), focus on emotional reaction. If System 2 (High), calculate unit economics.
         
-        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
+        SCORING LOGIC REINFORCEMENT:
+        - Likelihood to Buy MUST be the logical conclusion of your thoughts and other scores.
+        - If Clarity, Trust, or Value Perception are low, Likelihood to Buy SHOULD BE LOW.
+        - Do NOT give a high 'likelihoodToBuy' if your 'thoughts' or 'gutReaction' are critical/negative.
+        - Consistency is mandatory. If you feel "burned" or "skeptical", your numerical scores must reflect that accurately.
+
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural. Be your persona.`;
 
     const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE FACT SUMMARY:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
 
@@ -182,7 +188,18 @@ export class VisionAnalysisAdapter {
         - Escape any literal double quotes within strings using a backslash (\").
         - NO conversational preamble. NO monologue. NO text before or after the JSON.
         
-        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
+        BEHAVIORAL GUIDANCE:
+        - CONSCIENTIOUSNESS: If High, pay close attention to the small details and fine print. If Low, skip over the details.
+        - NEUROTICISM: If High, look for hidden fees or traps.
+        - COGNITIVE REFLEX: If System 1 (Low), focus on emotional reaction. If System 2 (High), calculate unit economics.
+
+        SCORING LOGIC REINFORCEMENT:
+        - Likelihood to Buy MUST be the logical conclusion of your thoughts and other scores.
+        - If Clarity, Trust, or Value Perception are low, Likelihood to Buy SHOULD BE LOW.
+        - Do NOT give a high 'likelihoodToBuy' if your 'thoughts' or 'gutReaction' are critical/negative.
+        - Consistency is mandatory. If you feel "burned" or "skeptical", your numerical scores must reflect that accurately.
+        
+        SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural. Be your persona.`;
 
     const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE FACT SUMMARY:\n"""\n${pageHtml}\n"""` : ""}`;
     let lastOutput = "";

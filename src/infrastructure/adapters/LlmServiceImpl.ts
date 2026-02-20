@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import pLimit from "p-limit";
-import { LlmServicePort } from "@/domain/ports/LlmServicePort";
+import { LlmServicePort, PricingLocation } from "@/domain/ports/LlmServicePort";
 import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
 import { PersonaAdapter } from "./PersonaAdapter";
 import { VisionAnalysisAdapter } from "./VisionAnalysisAdapter";
@@ -28,11 +28,11 @@ export class LlmServiceImpl implements LlmServicePort {
   private chatAdapter: ChatAdapter;
 
   // OpenRouter Defaults
-  private static readonly OR_TEXT_MODEL = "qwen/qwen3-30b-a3b-instruct-2507";
-  private static readonly OR_SMALL_TEXT_MODEL = "google/gemma-3-4b-it";
-  private static readonly OR_VISION_MODEL = "qwen/qwen3-vl-8b-instruct";
-  private static readonly OR_SCOUT_MODEL = "qwen/qwen-2.5-vl-7b-instruct:free";
-  private static readonly OR_EXTRACTION_MODEL = "google/gemma-3-4b-it";
+  private static readonly OR_TEXT_MODEL = "qwen/qwen3-235b-a22b-2507";
+  private static readonly OR_SMALL_TEXT_MODEL = "google/gemma-3-12b-it";
+  private static readonly OR_VISION_MODEL = "qwen/qwen3-vl-30b-a3b-instruct";
+  private static readonly OR_SCOUT_MODEL = "qwen/qwen3-vl-8b-instruct";
+  private static readonly OR_EXTRACTION_MODEL = "google/gemma-3-12b-it";
 
   // Ollama Defaults
   private static readonly OLLAMA_DEFAULT_MODEL = "gemma3:1b-it-qat";
@@ -120,23 +120,23 @@ export class LlmServiceImpl implements LlmServicePort {
     const models =
       provider === "ollama"
         ? {
-            text: overrides?.text || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
-            smallText:
-              overrides?.smallText || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
-            vision: overrides?.vision || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
-            scout: overrides?.scout || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
-            extraction:
-              overrides?.extraction || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
-          }
+          text: overrides?.text || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
+          smallText:
+            overrides?.smallText || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
+          vision: overrides?.vision || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
+          scout: overrides?.scout || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
+          extraction:
+            overrides?.extraction || LlmServiceImpl.OLLAMA_DEFAULT_MODEL,
+        }
         : {
-            text: overrides?.text || LlmServiceImpl.OR_TEXT_MODEL,
-            smallText:
-              overrides?.smallText || LlmServiceImpl.OR_SMALL_TEXT_MODEL,
-            vision: overrides?.vision || LlmServiceImpl.OR_VISION_MODEL,
-            scout: overrides?.scout || LlmServiceImpl.OR_SCOUT_MODEL,
-            extraction:
-              overrides?.extraction || LlmServiceImpl.OR_EXTRACTION_MODEL,
-          };
+          text: overrides?.text || LlmServiceImpl.OR_TEXT_MODEL,
+          smallText:
+            overrides?.smallText || LlmServiceImpl.OR_SMALL_TEXT_MODEL,
+          vision: overrides?.vision || LlmServiceImpl.OR_VISION_MODEL,
+          scout: overrides?.scout || LlmServiceImpl.OR_SCOUT_MODEL,
+          extraction:
+            overrides?.extraction || LlmServiceImpl.OR_EXTRACTION_MODEL,
+        };
 
     return new LlmServiceImpl(client, providerInstance, models);
   }
@@ -249,7 +249,7 @@ export class LlmServiceImpl implements LlmServicePort {
     return this.visionAdapter.isPricingVisible(screenshot);
   }
 
-  async isPricingVisibleInHtml(html: string): Promise<boolean> {
+  async isPricingVisibleInHtml(html: string): Promise<PricingLocation> {
     return this.visionAdapter.isPricingVisibleInHtml(html);
   }
 

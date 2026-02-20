@@ -132,6 +132,51 @@ export class RemotePlaywrightAdapter implements BrowserServicePort {
     }
 
     /**
+     * Scrolls the window to a specific Y-coordinate.
+     */
+    async scrollTo(y: number): Promise<void> {
+        if (!this.page) throw new Error("Browser not initialized. Call navigateTo first.");
+        console.log(`[BrowserAdapter] Scrolling to Y=${y}...`);
+        await this.page.evaluate((targetY) => {
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+        }, y);
+        // Wait for smooth scroll to settle
+        await this.page.waitForTimeout(1000);
+    }
+
+    /**
+     * Gets the vertical Y-offset of an element on the page.
+     */
+    async getElementLocation(selector?: string, anchorText?: string): Promise<number | null> {
+        if (!this.page) throw new Error("Browser not initialized. Call navigateTo first.");
+
+        return await this.page.evaluate(({ sel, txt }) => {
+            let element: Element | null = null;
+
+            // 1. Try Selector
+            if (sel) {
+                try {
+                    element = document.querySelector(sel);
+                } catch (e) { }
+            }
+
+            // 2. Try Anchor Text (XPath)
+            if (!element && txt) {
+                // Case-insensitive contains text
+                const xpath = `//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '${txt.toLowerCase()}')]`;
+                const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                element = result.singleNodeValue as Element;
+            }
+
+            if (element) {
+                const rect = element.getBoundingClientRect();
+                return window.scrollY + rect.top;
+            }
+            return null;
+        }, { sel: selector, txt: anchorText });
+    }
+
+    /**
      * Captures only the current viewport.
      */
     async captureViewport(): Promise<string> {

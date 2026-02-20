@@ -11,6 +11,8 @@ export interface BrowserServicePort {
      */
     navigateTo(url: string, onProgress?: (status: 'SETTING_UP' | 'LOADING_WEBSITE') => void, onLiveScreenshot?: (screenshotBase64: string) => Promise<void>): Promise<void>;
     scrollDown(pixels: number): Promise<void>;
+    scrollTo(y: number): Promise<void>;
+    getElementLocation(selector?: string, anchorText?: string): Promise<number | null>;
     captureViewport(): Promise<string>;
     captureFullPage(): Promise<string>;
     getCleanedHtml(): Promise<string>;

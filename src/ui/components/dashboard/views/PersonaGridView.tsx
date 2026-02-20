@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Users, Info, ChevronDown, MessageSquare, ArrowRight, Loader } from 'lucide-react'
+import { Users, Info, ChevronDown, MessageSquare, ArrowRight, Loader, UploadCloud, Link as LinkIcon, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { PsychologicalProfile } from '../shared/PsychologicalProfile'
 import { PersonaCard } from '../shared/PersonaCard'
@@ -13,6 +13,8 @@ interface PersonaGridViewProps {
   personas: Persona[]
   pricingUrl: string
   setPricingUrl: (val: string) => void
+  pricingImageBase64: string | null
+  setPricingImageBase64: (val: string | null) => void
   isPending: boolean
   onAnalyze: () => void
   onChat: (persona: Persona) => void
@@ -22,11 +24,28 @@ export const PersonaGridView: React.FC<PersonaGridViewProps> = ({
   personas,
   pricingUrl,
   setPricingUrl,
+  pricingImageBase64,
+  setPricingImageBase64,
   isPending,
   onAnalyze,
   onChat
 }) => {
   const [showPsychInfoId, setShowPsychInfoId] = useState<string | null>(null)
+  const [inputMode, setInputMode] = useState<'url' | 'image'>('url')
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const result = event.target?.result as string
+      // get the base64 part
+      const base64 = result.split(',')[1]
+      setPricingImageBase64(base64)
+      setInputMode('image')
+    }
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div className="space-y-8">
@@ -64,23 +83,62 @@ export const PersonaGridView: React.FC<PersonaGridViewProps> = ({
             </p>
           </div>
 
+          <div className="flex items-center gap-6 mb-2">
+            <button
+              onClick={() => setInputMode('url')}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 pb-2 border-b-2 transition-all ${inputMode === 'url' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground/50 hover:text-muted-foreground'}`}
+            >
+              <LinkIcon className="size-3" />
+              Provide URL
+            </button>
+            <button
+              onClick={() => setInputMode('image')}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] flex items-center gap-2 pb-2 border-b-2 transition-all ${inputMode === 'image' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground/50 hover:text-muted-foreground'}`}
+            >
+              <UploadCloud className="size-3" />
+              Upload Image
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-9 space-y-3">
-              <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50 ml-1">Pricing page URL</label>
-              <Input
-                type="url"
-                placeholder="https://acme.inc/pricing"
-                value={pricingUrl}
-                onChange={(e) => setPricingUrl(e.target.value)}
-                disabled={isPending}
-                className="text-sm w-full h-12 bg-white/[0.02] border-2 border-white/10 rounded-lg focus:border-white/20 transition-colors duration-200 placeholder:text-muted-foreground/10 shadow-inner px-4 font-mono"
-              />
+              {inputMode === 'url' ? (
+                <>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50 ml-1">Pricing page URL</label>
+                  <Input
+                    type="url"
+                    placeholder="https://acme.inc/pricing"
+                    value={pricingUrl}
+                    onChange={(e) => setPricingUrl(e.target.value)}
+                    disabled={isPending}
+                    className="text-sm w-full h-12 bg-white/[0.02] border-2 border-white/10 rounded-lg focus:border-white/20 transition-colors duration-200 placeholder:text-muted-foreground/10 shadow-inner px-4 font-mono"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/50 ml-1">Pricing Upload</label>
+                  {pricingImageBase64 ? (
+                    <div className="relative group h-12 w-full rounded-lg border-2 border-white/10 bg-white/[0.05] flex items-center justify-between px-4 transition-all">
+                      <span className="text-sm text-foreground/80 font-mono truncate mr-4">Screenshot attached</span>
+                      <button onClick={() => setPricingImageBase64(null)} className="text-muted-foreground hover:text-red-400 transition-colors">
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="h-12 w-full bg-white/[0.02] border-2 border-dashed border-white/20 hover:border-white/40 rounded-lg flex items-center justify-center gap-3 cursor-pointer transition-colors text-muted-foreground hover:text-foreground group text-sm font-medium">
+                      <UploadCloud className="size-4 group-hover:scale-110 transition-transform" />
+                      <span>Click to browse</span>
+                      <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" disabled={isPending} onChange={handleImageUpload} />
+                    </label>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="md:col-span-3">
               <Button
                 onClick={onAnalyze}
-                disabled={!pricingUrl.trim() || isPending}
+                disabled={(inputMode === 'url' ? !pricingUrl.trim() : !pricingImageBase64) || isPending}
                 variant="premium"
                 size="lg"
                 className="h-12 w-full rounded-lg px-8 group font-bold uppercase tracking-widest text-[11px]"

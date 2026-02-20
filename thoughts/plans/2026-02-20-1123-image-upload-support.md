@@ -34,11 +34,11 @@ Loosen domain validation and refactor the use case to support the "Vision-only" 
 
 ### Changes Required:
 
-#### 1. Domain Validation
+#### [x] 1. Domain Validation
 **File**: `src/domain/entities/PricingAnalysis.ts`
 **Changes**: Update `validatePricingAnalysis` to accept `uploaded://` as a valid "virtual" URL prefix for uploaded files, or simply allow the string "Manual Upload".
 
-#### 2. Use Case Refactoring
+#### [x] 2. Use Case Refactoring
 **File**: `src/application/usecases/ParsePricingPageUseCase.ts`
 **Changes**: Update `execute()` signature and add conditional logic to skip scouting if an image is provided.
 
@@ -69,11 +69,11 @@ Wiring the new data path from the UI to the backend use case.
 
 ### Changes Required:
 
-#### 1. Server Action
+#### [x] 1. Server Action
 **File**: `src/actions/analyzePricingPage.ts`
 **Changes**: Accept `imageBase64` in `analyzePricingPageAction` and pass it through to `execute()`.
 
-#### 2. Analysis Hook
+#### [x] 2. Analysis Hook
 **File**: `src/ui/hooks/useAnalysisFlow.ts`
 **Changes**: Add `pricingImage` state. Update `handleAnalyzePricing` to determine if it should send the URL or the image to the action.
 
@@ -85,7 +85,7 @@ Adding a high-fidelity upload interface to the dashboard.
 
 ### Changes Required:
 
-#### 1. Persona Grid View
+#### [x] 1. Persona Grid View
 **File**: `src/ui/components/dashboard/views/PersonaGridView.tsx`
 **Changes**: 
 - Implement a "Toggle" or "Alternative" UI for Image Upload.
@@ -97,8 +97,8 @@ Adding a high-fidelity upload interface to the dashboard.
 ## Success Criteria
 
 ### Automated:
-- `npm run lint` passes across modified files.
-- Manual verification that the use case does not attempt to launch Playwright when `imageBase64` is provided.
+- [x] `npm run lint` passes across modified files.
+- [x] Manual verification that the use case does not attempt to launch Playwright when `imageBase64` is provided.
 
 ### Manual:
 1. Upload a `.png` or `.jpg` of a pricing table.

@@ -171,5 +171,7 @@ export interface LlmServicePort {
         persona: Persona,
         prompt: string,
     ): Promise<{ isValid: boolean; reason?: string }>;
+
+    summarizeHtml(html: string): Promise<string>;
 }
 

@@ -5,6 +5,7 @@ import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
 import { PersonaAdapter } from "./PersonaAdapter";
 import { VisionAnalysisAdapter } from "./VisionAnalysisAdapter";
 import { ChatAdapter } from "./ChatAdapter";
+import { ExtractionAdapter } from "./ExtractionAdapter";
 import { Persona } from "@/domain/entities/Persona";
 import { PricingAnalysis } from "@/domain/entities/PricingAnalysis";
 
@@ -26,6 +27,7 @@ export class LlmServiceImpl implements LlmServicePort {
   private personaAdapter: PersonaAdapter;
   private visionAdapter: VisionAnalysisAdapter;
   private chatAdapter: ChatAdapter;
+  private extractionAdapter: ExtractionAdapter;
 
   // OpenRouter Defaults
   private static readonly OR_TEXT_MODEL = "qwen/qwen3-235b-a22b-2507";
@@ -59,6 +61,7 @@ export class LlmServiceImpl implements LlmServicePort {
     this.personaAdapter = new PersonaAdapter(this);
     this.visionAdapter = new VisionAnalysisAdapter(this);
     this.chatAdapter = new ChatAdapter(this);
+    this.extractionAdapter = new ExtractionAdapter(this);
   }
 
   private sleep(ms: number): Promise<void> {
@@ -284,6 +287,10 @@ export class LlmServiceImpl implements LlmServicePort {
     prompt: string,
   ): Promise<{ isValid: boolean; reason?: string }> {
     return this.chatAdapter.validatePromptDomain(persona, prompt);
+  }
+
+  async summarizeHtml(html: string): Promise<string> {
+    return this.extractionAdapter.summarizeHtml(html);
   }
 
   // --- Legacy / Compatibility ---

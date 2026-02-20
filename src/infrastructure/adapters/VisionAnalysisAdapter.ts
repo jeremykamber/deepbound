@@ -23,8 +23,8 @@ export class VisionAnalysisAdapter {
         
         CONTEXT:
         You are looking at a pricing page. You have been provided with:
-        1. A screenshot of the page (image).
-        2. The raw HTML/text content of the page (if available).
+        1. A screenshot of the exact viewport containing the pricing.
+        2. A verified factual summary of the page's HTML (including product info, tier data, and fine print).
         
         TASK:
         Evaluate this page from YOUR perspective. Use your personality, values, and scalars.
@@ -40,9 +40,9 @@ export class VisionAnalysisAdapter {
         - If you have nothing more to say, STOP.
         
         HYBRID GROUNDING RULES:
-        - Use the screenshot to gauge visual appeal, layout, and hierarchy.
-        - Use the HTML to verify specific prices, plan names, and fine print that might be hard to see in the image.
-        - If there is a contradiction, trust the HTML for data and the screenshot for layout/emotion.
+        - Use the screenshot to gauge visual appeal, layout, emotion, and visual hierarchy.
+        - Use the HTML summary to verify specific prices, plan names, and fine print that might be cut off or hard to read in the image.
+        - If there is a contradiction, trust the HTML summary for hard data (prices/features) and the screenshot for layout/emotion.
         
         BEHAVIORAL GUIDANCE:
         - CONSCIENTIOUSNESS: If High, pay close attention to the small details and fine print. If Low, skip over the details.
@@ -51,7 +51,7 @@ export class VisionAnalysisAdapter {
         
         SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
 
-    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE FACT SUMMARY:\n\"\"\"\n${pageHtml}\n\"\"\"` : ""}`;
 
     return streamObject({
       model: this.llmService.provider(this.llmService.visionModel),
@@ -168,6 +168,11 @@ export class VisionAnalysisAdapter {
         PERSONA PROFILE:
         ${stringifyPersona(persona)}
         
+        CONTEXT:
+        You are looking at a pricing page. You have been provided with:
+        1. A screenshot of the exact viewport containing the pricing.
+        2. A verified factual summary of the page's HTML (including product info, tier data, and fine print).
+        
         TASK:
         Evaluate this page from YOUR perspective. Return ONLY a valid JSON object following the PricingAnalysis schema.
         
@@ -179,7 +184,7 @@ export class VisionAnalysisAdapter {
         
         SPEAK IN FIRST PERSON (within the JSON fields only). Be blunt, honest, and natural.`;
 
-    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE HTML CONTENT:\n"""\n${pageHtml}\n"""` : ""}`;
+    const prompt = `Evaluate this pricing page. Return ONLY the JSON object. ${pageHtml ? `\n\nPAGE FACT SUMMARY:\n"""\n${pageHtml}\n"""` : ""}`;
     let lastOutput = "";
     try {
       const completion = await this.llmService.createChatCompletion(

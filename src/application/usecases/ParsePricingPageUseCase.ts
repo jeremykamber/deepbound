@@ -163,14 +163,19 @@ export class ParsePricingPageUseCase {
         }
       }
 
-      // 4. Final Capture (Hydrated Page)
-      // Now that we've scrolled and triggered everything, capture the full page for analysis.
-      // This ensures the final analysis has the fully rendered content.
-      capturedScreenshot = await this.browserService.captureFullPage();
+      // 4. Final Capture (Hydrated Page at Scrolled Position)
+      // Capture the DOM state after scrolling has triggered lazy loads/animations
+      const finalHtml = await this.browserService.getCleanedHtml();
 
-      // We don't broadcast the full-page shot here as it looks weird in the UI.
-      // The UI will keep showing the last viewport shot until analysis starts.
-      onProgress?.({ step: 'THINKING' });
+      // Compact the HTML into an objective summary
+      onProgress?.({ step: 'THINKING' }); // Start thinking earlier while summarization happens
+      console.log(`[ParsePricingPageUseCase] Compacting HTML...`);
+      const compactedHtml = await this.llmService.summarizeHtml(finalHtml);
+      console.log(`[ParsePricingPageUseCase] HTML Compacting complete.`);
+
+      // Use the last targeted viewport instead of full page
+      capturedScreenshot = lastScoutingViewport;
+      pageHtml = compactedHtml; // Replace the raw HTML with the summary for downstream analysis
 
     } finally {
       // Ensure browser is closed even if scouting fails

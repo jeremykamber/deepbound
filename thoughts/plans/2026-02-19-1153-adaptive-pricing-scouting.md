@@ -42,7 +42,7 @@ interface PricingLocation {
 4.  **Confirm**: Capture viewport and run `isPricingVisible` (Vision).
 5.  **Fallback**: If no target found or Vision confirmation fails, fall back to linear scrolling (800px increments).
 
-## Phase 1: Port & Schema Updates
+## Phase 1: Port & Schema Updates - [x] Done
 ### Overview
 Define the new `PricingLocation` interface and update the service ports.
 
@@ -55,7 +55,7 @@ Define the new `PricingLocation` interface and update the service ports.
 **File**: `src/infrastructure/adapters/VisionAnalysisAdapter.ts`
 **Changes**: Update `isPricingVisibleInHtml` to use a JSON-based prompt and parse the `PricingLocation` response.
 
-## Phase 2: Browser Adapter Enhancements
+## Phase 2: Browser Adapter Enhancements - [x] Done
 ### Overview
 Add specialized methods to handle coordinate detection and specific scrolling.
 
@@ -68,7 +68,7 @@ Add specialized methods to handle coordinate detection and specific scrolling.
 **File**: `src/infrastructure/adapters/RemotePlaywrightAdapter.ts`
 **Changes**: Implement `getElementLocation` using `page.evaluate` and `scrollTo`.
 
-## Phase 3: Implement Scouting Logic in UseCase
+## Phase 3: Implement Scouting Logic in UseCase - [x] Done
 ### Overview
 Assemble the pieces in `ParsePricingPageUseCase.execute`.
 
@@ -82,8 +82,8 @@ Assemble the pieces in `ParsePricingPageUseCase.execute`.
 
 ## Success Criteria:
 ### Automated:
-- `npm run lint` passes.
-- `PricingLocation` JSON parsing is robust against LLM preamble.
+- [x] `npm run lint` passes (except for pre-existing errors).
+- [x] `PricingLocation` JSON parsing is robust against LLM preamble.
 
 ### Manual:
 1. Test on a page with a standard ID (e.g., `<section id="pricing">`).

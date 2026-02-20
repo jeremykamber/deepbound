@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useTransition, useRef, useEffect } from 'react'
+import { useLocalStorage } from '@/ui/hooks/useLocalStorage'
 import { Persona } from '@/domain/entities/Persona'
 import { PricingAnalysis } from '@/domain/entities/PricingAnalysis'
 import { chatWithPersonaAction } from '@/actions/chatWithPersona'
@@ -32,7 +33,8 @@ export const PersonaChatInterface: React.FC<PersonaChatInterfaceProps> = ({
   persona,
   analysis
 }) => {
-  const [messages, setMessages] = useState<Message[]>([])
+  const storageKey = `persona_chat_${analysis?.id || 'no-analysis'}_${persona.id}`
+  const [messages, setMessages] = useLocalStorage<Message[]>(storageKey, [])
   const [input, setInput] = useState('')
   const [isPending, startTransition] = useTransition()
   const messagesEndRef = useRef<HTMLDivElement>(null)

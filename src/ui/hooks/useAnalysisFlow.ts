@@ -21,6 +21,7 @@ export interface AnalysisProgress {
 
 export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => void) {
   const [pricingUrl, setPricingUrl] = useState('')
+  const [pricingImageBase64, setPricingImageBase64] = useState<string | null>(null)
   const [analyses, setAnalyses] = useState<PricingAnalysis[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -43,7 +44,8 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
   }
 
   const handleAnalyzePricing = (personas: Persona[]) => {
-    if (!pricingUrl.trim() || !personas) return
+    if (!pricingUrl.trim() && !pricingImageBase64) return
+    if (!personas) return
 
     setError(null)
     const controller = new AbortController()
@@ -52,7 +54,8 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
 
     startTransition(async () => {
       try {
-        const { streamData, requestId } = await analyzePricingPageAction(pricingUrl, personas)
+        const urlToUse = pricingImageBase64 ? "Manual Upload" : pricingUrl;
+        const { streamData, requestId } = await analyzePricingPageAction(urlToUse, personas, undefined, pricingImageBase64 || undefined)
         setCurrentRequestId(requestId)
 
         let lastUpdate = 0;
@@ -160,6 +163,8 @@ export function useAnalysisFlow(onSuccess?: (analyses: PricingAnalysis[]) => voi
   return {
     pricingUrl,
     setPricingUrl,
+    pricingImageBase64,
+    setPricingImageBase64,
     analyses,
     setAnalyses,
     error,

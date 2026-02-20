@@ -46,6 +46,8 @@ export const Dashboard: React.FC = () => {
   const {
     pricingUrl,
     setPricingUrl,
+    pricingImageBase64,
+    setPricingImageBase64,
     analyses,
     setAnalyses,
     error: analysisError,
@@ -167,6 +169,8 @@ export const Dashboard: React.FC = () => {
                 personas={personas}
                 pricingUrl={pricingUrl}
                 setPricingUrl={setPricingUrl}
+                pricingImageBase64={pricingImageBase64}
+                setPricingImageBase64={setPricingImageBase64}
                 isPending={isAnalysisPending}
                 onAnalyze={() => handleAnalyzePricing(personas)}
                 onChat={(persona) => setActiveChat({ persona, analysis: null })}

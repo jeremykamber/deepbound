@@ -85,7 +85,7 @@ const PersonaAnalysisPage: React.FC<{ persona: Persona, analysis: PricingAnalysi
 
 ### Success Criteria:
 * [x] **Automated**: TypeScript compilation succeeds (`tsc --noEmit`).
-* [ ] **Manual**: Produce a full PDF via the application UI and verify identical functional content but cleaner code architecture compared to the original code.
+* [x] **Manual**: Produce a full PDF via the application UI and verify identical functional content but cleaner code architecture compared to the original code.
 
 ## Testing Strategy
 * **Unit Tests**: Confirm the `PDFDownloadLink` wrapper in `AnalysisResultView.tsx` mounts successfully.

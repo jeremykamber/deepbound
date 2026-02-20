@@ -1,309 +1,169 @@
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { Persona } from '@/domain/entities/Persona';
 import { PricingAnalysis } from '@/domain/entities/PricingAnalysis';
 
 const PDF_THEME = {
     colors: {
-        background: '#0A0A0A',
-        foreground: '#F5F5F5',
-        card: '#141414',
+        background: '#040404',
+        foreground: '#FFFFFF',
+        mutedForeground: '#71717A',
         primary: '#6366F1',
-        mutedForeground: '#9CA3AF',
-        border: 'rgba(255, 255, 255, 0.10)' // 10% white
+        card: '#0A0A0A',
+        border: '#1F1F22',
+        accent: '#FFFFFF'
     },
-    radii: {
-        sm: 6,
-        md: 8,
-        lg: 16
+    spacing: {
+        page: 40,
+        section: 32,
+        item: 12
     }
 };
 
-// Note: Using standard fonts for reliability, but styling them to look premium
 const styles = StyleSheet.create({
     page: {
-        padding: 40,
+        padding: PDF_THEME.spacing.page,
         backgroundColor: PDF_THEME.colors.background,
         color: PDF_THEME.colors.foreground,
         fontFamily: 'Helvetica',
     },
-    // Cover Page Styles
-    coverPage: {
-        padding: 60,
-        backgroundColor: PDF_THEME.colors.background,
-        color: PDF_THEME.colors.foreground,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        height: '100%',
-    },
-    brandContainer: {
+    // Branding Header
+    brandHeader: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 40,
-    },
-    logoBox: {
-        width: 40,
-        height: 40,
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        borderWidth: 1,
-        borderColor: PDF_THEME.colors.border,
-        borderRadius: PDF_THEME.radii.md,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15,
-    },
-    logoText: {
-        color: PDF_THEME.colors.primary,
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    brandTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        letterSpacing: -0.5,
-    },
-    heroTitle: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        letterSpacing: -1,
-    },
-    heroSubtitle: {
-        fontSize: 18,
-        color: PDF_THEME.colors.mutedForeground,
         marginBottom: 60,
-        fontWeight: 'light',
-        lineHeight: 1.5,
     },
-    metadataRow: {
-        borderTopWidth: 1,
-        borderTopColor: PDF_THEME.colors.border,
-        paddingTop: 30,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    metadataItem: {
-        flex: 1,
-    },
-    metadataLabel: {
+    brandName: {
         fontSize: 10,
-        color: PDF_THEME.colors.mutedForeground,
-        textTransform: 'uppercase',
-        letterSpacing: 2,
-        marginBottom: 8,
         fontWeight: 'bold',
-    },
-    metadataValue: {
-        fontSize: 14,
-        color: PDF_THEME.colors.foreground,
-    },
-
-    // Analysis Page Styles
-    header: {
-        marginBottom: 40,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        borderBottomWidth: 1,
-        borderBottomColor: PDF_THEME.colors.border,
-        paddingBottom: 20,
-    },
-    headerLeft: {
-        flex: 1,
-    },
-    headerTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: PDF_THEME.colors.primary,
-        textTransform: 'uppercase',
         letterSpacing: 1,
-        marginBottom: 4,
+        textTransform: 'uppercase',
     },
-    headerSubtitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    pageNumber: {
+    reportType: {
         fontSize: 10,
         color: PDF_THEME.colors.mutedForeground,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
 
-    personaHeader: {
-        marginBottom: 40,
-    },
-    personaIdentifier: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    personaAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        borderWidth: 1,
-        borderColor: PDF_THEME.colors.border,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    personaName: {
-        fontSize: 24,
+    // Persona Name Section
+    personaTitle: {
+        fontSize: 32,
         fontWeight: 'bold',
+        marginBottom: 4,
         letterSpacing: -0.5,
     },
     personaOccupation: {
-        fontSize: 14,
+        fontSize: 12,
         color: PDF_THEME.colors.mutedForeground,
-        fontWeight: 'light',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 48,
     },
 
-    gutReactionContainer: {
-        paddingLeft: 20,
-        borderLeftWidth: 2,
+    // Quote Section
+    quoteContainer: {
+        borderLeftWidth: 1,
         borderLeftColor: PDF_THEME.colors.primary,
-        marginBottom: 40,
-        marginTop: 10,
+        paddingLeft: 24,
+        marginBottom: 60,
     },
-    gutReactionLabel: {
-        fontSize: 8,
-        fontWeight: 'bold',
-        color: PDF_THEME.colors.primary,
-        textTransform: 'uppercase',
-        letterSpacing: 2,
-        marginBottom: 8,
-    },
-    gutReactionText: {
-        fontSize: 18,
-        color: PDF_THEME.colors.foreground,
+    quoteText: {
+        fontSize: 22,
         fontStyle: 'italic',
         lineHeight: 1.4,
+        color: PDF_THEME.colors.foreground,
     },
 
-    sectionTitle: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: PDF_THEME.colors.mutedForeground,
-        textTransform: 'uppercase',
-        letterSpacing: 2,
-        marginBottom: 20,
-        marginTop: 40,
-    },
-
-    metricGrid: {
+    // Metrics Row
+    metricsContainer: {
         flexDirection: 'row',
-        marginBottom: 40,
-        gap: 20,
+        marginBottom: 80,
+        gap: 40,
     },
     metricBlock: {
         flex: 1,
-        padding: 15,
-        backgroundColor: PDF_THEME.colors.card,
-        borderRadius: PDF_THEME.radii.md,
-        borderWidth: 1,
-        borderColor: PDF_THEME.colors.border,
     },
     metricLabel: {
         fontSize: 8,
-        fontWeight: 'bold',
         color: PDF_THEME.colors.mutedForeground,
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: 10,
+        paddingBottom: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: PDF_THEME.colors.border,
     },
-    metricValueContainer: {
+    metricValueRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        gap: 2,
     },
     metricValue: {
-        fontSize: 28,
-        fontWeight: 'light',
-        color: PDF_THEME.colors.foreground,
+        fontSize: 24,
+        fontWeight: 'bold',
     },
     metricMax: {
         fontSize: 10,
         color: PDF_THEME.colors.mutedForeground,
-        fontWeight: 'bold',
-    },
-    metricHighlight: {
-        color: PDF_THEME.colors.primary,
+        marginLeft: 2,
     },
 
-    monologueContainer: {
-        marginBottom: 30,
-    },
-    monologueParagraph: {
-        fontSize: 11,
-        color: PDF_THEME.colors.foreground,
-        lineHeight: 1.6,
-        marginBottom: 12,
-        fontWeight: 'light',
-    },
-
-    concernsContainer: {
-        gap: 10,
-    },
-    concernItem: {
+    // Content Grid (Summary & Risks)
+    contentGrid: {
         flexDirection: 'row',
-        padding: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
-        borderRadius: PDF_THEME.radii.md,
-        borderWidth: 1,
-        borderColor: PDF_THEME.colors.border,
-        alignItems: 'flex-start',
+        gap: 48,
     },
-    concernIcon: {
-        width: 12,
-        color: PDF_THEME.colors.primary,
-        fontSize: 14,
-        marginRight: 10,
-        marginTop: -2,
+    summaryColumn: {
+        flex: 1.2,
     },
-    concernText: {
-        fontSize: 10,
-        color: PDF_THEME.colors.mutedForeground,
-        lineHeight: 1.4,
+    risksColumn: {
         flex: 1,
     },
-
-    personaDetailGrid: {
-        flexDirection: 'row',
-        gap: 30,
-        marginTop: 20,
-    },
-    personaDetailColumn: {
-        flex: 1,
-    },
-    personaDetailLabel: {
+    columnLabel: {
         fontSize: 8,
-        fontWeight: 'bold',
         color: PDF_THEME.colors.mutedForeground,
         textTransform: 'uppercase',
         letterSpacing: 1,
-        marginBottom: 8,
+        marginBottom: 16,
     },
-    personaDetailText: {
+    summaryText: {
         fontSize: 10,
-        color: PDF_THEME.colors.foreground,
-        lineHeight: 1.5,
+        lineHeight: 1.6,
+        color: '#D4D4D8',
     },
 
+    // Risks / Friction Points
+    riskItem: {
+        backgroundColor: PDF_THEME.colors.card,
+        borderRadius: 6,
+        padding: 10,
+        marginBottom: 6,
+        borderWidth: 1,
+        borderColor: PDF_THEME.colors.border,
+    },
+    riskText: {
+        fontSize: 9,
+        lineHeight: 1.4,
+        color: '#A1A1AA',
+    },
+
+    // Footer
     footer: {
         position: 'absolute',
-        bottom: 30,
-        left: 40,
-        right: 40,
+        bottom: PDF_THEME.spacing.page,
+        left: PDF_THEME.spacing.page,
+        right: PDF_THEME.spacing.page,
         flexDirection: 'row',
         justifyContent: 'space-between',
+        paddingTop: 24,
         borderTopWidth: 1,
         borderTopColor: PDF_THEME.colors.border,
-        paddingTop: 15,
     },
     footerText: {
-        fontSize: 8,
-        color: PDF_THEME.colors.mutedForeground,
+        fontSize: 7,
+        color: '#444444',
         letterSpacing: 0.5,
+        textTransform: 'uppercase',
     }
 });
 
@@ -313,120 +173,64 @@ interface PersonaAnalysisPDFProps {
     pricingUrl: string;
 }
 
-const ReportCoverPage: React.FC<{ personasCount: number, pricingUrl: string }> = ({ personasCount, pricingUrl }) => (
-    <Page size="A4" style={styles.coverPage}>
-        <View style={styles.brandContainer}>
-            <View style={styles.logoBox}>
-                <Text style={styles.logoText}>D</Text>
-            </View>
-            <Text style={styles.brandTitle}>DeepBound</Text>
+const MetricBlock: React.FC<{ label: string, value: number }> = ({ label, value }) => (
+    <View style={styles.metricBlock}>
+        <Text style={styles.metricLabel}>{label}</Text>
+        <View style={styles.metricValueRow}>
+            <Text style={styles.metricValue}>{value}</Text>
+            <Text style={styles.metricMax}>/ 10</Text>
         </View>
-
-        <Text style={styles.heroTitle}>Pricing Analysis Report</Text>
-        <Text style={styles.heroSubtitle}>
-            A high-fidelity behavioral audit of pricing structures and psychological triggers
-            conducted through the lens of targeted buyer personas.
-        </Text>
-
-        <View style={styles.metadataRow}>
-            <View style={styles.metadataItem}>
-                <Text style={styles.metadataLabel}>Source URL</Text>
-                <Text style={styles.metadataValue}>{pricingUrl.replace('https://', '').split('/')[0]}</Text>
-            </View>
-            <View style={{ ...styles.metadataItem, flex: 0.5 }}>
-                <Text style={styles.metadataLabel}>Sample Size</Text>
-                <Text style={styles.metadataValue}>{personasCount} Personas</Text>
-            </View>
-            <View style={{ ...styles.metadataItem, flex: 0.5 }}>
-                <Text style={styles.metadataLabel}>Date</Text>
-                <Text style={styles.metadataValue}>{new Date().toLocaleDateString()}</Text>
-            </View>
-        </View>
-    </Page>
+    </View>
 );
 
-const PersonaAnalysisPage: React.FC<{ persona: Persona, analysis: PricingAnalysis, pricingUrl: string }> = ({ persona, analysis, pricingUrl }) => (
+const RiskItem: React.FC<{ text: string }> = ({ text }) => (
+    <View style={styles.riskItem}>
+        <Text style={styles.riskText}>{text}</Text>
+    </View>
+);
+
+const AnalysisPage: React.FC<{ persona: Persona, analysis: PricingAnalysis }> = ({ persona, analysis }) => (
     <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-            <View style={styles.headerLeft}>
-                <Text style={styles.headerTitle}>Buyer Audit</Text>
-                <Text style={styles.headerSubtitle}>{new URL(pricingUrl).hostname}</Text>
+        <View style={styles.brandHeader}>
+            <Text style={styles.brandName}>DeepBound</Text>
+            <Text style={styles.reportType}>Buyer Persona Audit</Text>
+        </View>
+
+        <View>
+            <Text style={styles.personaTitle}>{persona.name}</Text>
+            <Text style={styles.personaOccupation}>{persona.occupation}</Text>
+        </View>
+
+        <View style={styles.quoteContainer}>
+            <Text style={styles.quoteText}>&ldquo;{analysis.gutReaction}&rdquo;</Text>
+        </View>
+
+        <View style={styles.metricsContainer}>
+            <MetricBlock label="UI Clarity" value={analysis.scores.clarity} />
+            <MetricBlock label="Value Perception" value={analysis.scores.valuePerception} />
+            <MetricBlock label="Psychological Trust" value={analysis.scores.trust} />
+            <MetricBlock label="Buying Likelihood" value={analysis.scores.likelihoodToBuy} />
+        </View>
+
+        <View style={styles.contentGrid}>
+            <View style={styles.summaryColumn}>
+                <Text style={styles.columnLabel}>Summary</Text>
+                <Text style={styles.summaryText}>
+                    {analysis.rawAnalysis || analysis.thoughts}
+                </Text>
             </View>
-            <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => (
-                `Page ${pageNumber} of ${totalPages}`
-            )} fixed />
-        </View>
 
-        <View style={styles.personaHeader}>
-            <View style={styles.personaIdentifier}>
-                <View style={styles.personaAvatar}>
-                    <Text style={{ color: PDF_THEME.colors.primary, fontSize: 12, fontWeight: 'bold' }}>{persona.name[0]}</Text>
-                </View>
-                <View>
-                    <Text style={styles.personaName}>{persona.name}</Text>
-                    <Text style={styles.personaOccupation}>{persona.occupation}</Text>
-                </View>
-            </View>
-        </View>
-
-        <View style={styles.gutReactionContainer}>
-            <Text style={styles.gutReactionLabel}>First Impression</Text>
-            <Text style={styles.gutReactionText}>&ldquo;{analysis.gutReaction}&rdquo;</Text>
-        </View>
-
-        <View style={styles.metricGrid} wrap={false}>
-            <MetricBlock label="Clarity" value={analysis.scores.clarity} />
-            <MetricBlock label="Value" value={analysis.scores.valuePerception} />
-            <MetricBlock label="Trust" value={analysis.scores.trust} />
-            <MetricBlock label="Purchase" value={analysis.scores.likelihoodToBuy} highlight />
-        </View>
-
-        <Text style={styles.sectionTitle}>Full Monologue</Text>
-        <View style={styles.monologueContainer}>
-            {(analysis.rawAnalysis || analysis.thoughts)
-                .split('\n\n')
-                .filter(p => p.trim())
-                .map((p, pIdx) => (
-                    <Text key={pIdx} style={styles.monologueParagraph}>
-                        {p.trim()}
-                    </Text>
-                ))
-            }
-        </View>
-
-        {analysis.risks.length > 0 && (
-            <View wrap={false}>
-                <Text style={styles.sectionTitle}>Friction Points</Text>
-                <View style={styles.concernsContainer}>
-                    {analysis.risks.map((risk, idx) => (
-                        <View key={idx} style={styles.concernItem}>
-                            <Text style={styles.concernIcon}>•</Text>
-                            <Text style={styles.concernText}>{risk}</Text>
-                        </View>
-                    ))}
-                </View>
-            </View>
-        )}
-
-        <View style={{ marginTop: 'auto' }}>
-            <Text style={styles.sectionTitle}>Persona Context</Text>
-            <View style={styles.personaDetailGrid} wrap={false}>
-                <View style={styles.personaDetailColumn}>
-                    <Text style={styles.personaDetailLabel}>Backstory</Text>
-                    <Text style={styles.personaDetailText}>{persona.backstory ? `${persona.backstory.substring(0, 300)}...` : "No backstory provided."}</Text>
-                </View>
-                <View style={styles.personaDetailColumn}>
-                    <Text style={styles.personaDetailLabel}>Goals</Text>
-                    {persona.goals.map((goal, i) => (
-                        <Text key={i} style={{ ...styles.personaDetailText, marginBottom: 4 }}>• {goal}</Text>
-                    ))}
-                </View>
+            <View style={styles.risksColumn}>
+                <Text style={styles.columnLabel}>Why they hesitate</Text>
+                {analysis.risks.map((risk, i) => (
+                    <RiskItem key={i} text={risk} />
+                ))}
             </View>
         </View>
 
         <View style={styles.footer} fixed>
-            <Text style={styles.footerText}>DEEPBOUND BEHAVIORAL FIDELITY REPORT</Text>
-            <Text style={styles.footerText}>{new Date().getFullYear()} • CONFIDENTIAL</Text>
+            <Text style={styles.footerText}>Behavioral Fidelity Report • {new Date().getFullYear()}</Text>
+            <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
     </Page>
 );
@@ -434,33 +238,18 @@ const PersonaAnalysisPage: React.FC<{ persona: Persona, analysis: PricingAnalysi
 export const PersonaAnalysisReport: React.FC<PersonaAnalysisPDFProps> = ({
     personas,
     analyses,
-    pricingUrl
 }) => (
-    <Document title="DeepBound Pricing Analysis Report">
-        <ReportCoverPage personasCount={personas.length} pricingUrl={pricingUrl} />
-
+    <Document title="DeepBound Analysis Report">
         {personas.map((persona, index) => {
             const analysis = analyses[index];
             if (!analysis) return null;
-
             return (
-                <PersonaAnalysisPage
+                <AnalysisPage
                     key={persona.id}
                     persona={persona}
                     analysis={analysis}
-                    pricingUrl={pricingUrl}
                 />
             );
         })}
     </Document>
-);
-
-const MetricBlock: React.FC<{ label: string, value: number, highlight?: boolean }> = ({ label, value, highlight }) => (
-    <View style={styles.metricBlock}>
-        <Text style={styles.metricLabel}>{label}</Text>
-        <View style={styles.metricValueContainer}>
-            <Text style={highlight ? [styles.metricValue, styles.metricHighlight] : styles.metricValue}>{value}</Text>
-            <Text style={styles.metricMax}>/10</Text>
-        </View>
-    </View>
 );

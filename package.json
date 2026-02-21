@@ -33,6 +33,7 @@
     "playwright-extra": "^4.3.6",
     "plop": "^4.0.4",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "rate-limiter-flexible": "^9.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",

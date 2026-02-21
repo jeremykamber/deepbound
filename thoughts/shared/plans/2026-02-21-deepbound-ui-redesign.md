@@ -127,7 +127,7 @@ Recreate the landing page to reflect the new visual identity.
 - Ensure all calls-to-action (CTAs) properly route to `/dashboard`.
 
 ### Success Criteria:
-- [ ] Automated: Page compiles successfully.
+- [x] Automated: Page compiles successfully.
 - [ ] Manual: Visual inspection confirms a massive improvement in whitespace, typography hierarchy, and overall modern aesthetic.
 
 ---

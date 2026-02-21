@@ -154,7 +154,7 @@ Rebuild the interactive dashboard and hook it up to the existing business logic.
 - **Chat Interface**: Rebuild the `PersonaChat` as an elegant, slide-out or modal interface with distraction-free chat bubbles.
 
 ### Success Criteria:
-- [ ] Automated: TypeScript definitions match the hooks perfectly.
+- [x] Automated: TypeScript definitions match the hooks perfectly.
 - [ ] Manual: Users can successfully input data, generate personas, run the analysis flow, and chat with personas.
 - [ ] Manual: The streaming progress indicators function smoothly in the new `FlowDialog` UI.
 - [ ] Manual: The application is 100% functional and visually pristine.

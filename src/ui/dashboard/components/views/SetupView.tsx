@@ -3,6 +3,8 @@
 import { usePersonaFlow } from '@/ui/hooks/usePersonaFlow'
 import { useAnalysisFlow } from '@/ui/hooks/useAnalysisFlow'
 import { MinimalCard } from '@/components/custom/MinimalCard'
+import { MOCK_PERSONAS } from '@/domain/entities/MockPersonas'
+import { MOCK_ANALYSES } from '@/domain/entities/MockAnalyses'
 
 interface SetupViewProps {
   personaFlow: ReturnType<typeof usePersonaFlow>
@@ -11,8 +13,23 @@ interface SetupViewProps {
 }
 
 export function SetupView({ personaFlow, analysisFlow, hasPersonas }: SetupViewProps) {
+  const loadMockData = () => {
+    personaFlow.setPersonas(MOCK_PERSONAS)
+    const mockAnalysesList = Object.values(MOCK_ANALYSES)
+    analysisFlow.setAnalyses(mockAnalysesList)
+  }
+
   return (
     <div className="flex flex-col gap-16 max-w-4xl mx-auto w-full">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={loadMockData}
+          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+        >
+          Load Demo Data
+        </button>
+      </div>
       <div className="flex flex-col gap-4 text-center items-center">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance">
           Define your target market

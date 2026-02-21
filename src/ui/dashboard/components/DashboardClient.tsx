@@ -115,6 +115,23 @@ export function DashboardClient() {
                 `Gathering feedback (${analysisFlow.analysisProgress.completedCount || 0}/${analysisFlow.analysisProgress.totalCount || 3})`
               )}
             </p>
+
+            {/* AI Vision Stream (Screenshot Preview) */}
+            {analysisFlow.analysisProgress.screenshot && (
+              <div className="relative w-full max-w-lg aspect-video rounded-xl overflow-hidden border border-border shadow-sm bg-muted/30">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={`data:image/jpeg;base64,${analysisFlow.analysisProgress.screenshot}`} 
+                  alt="AI Agent View" 
+                  className="w-full h-full object-cover object-top opacity-80"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent flex items-end justify-center pb-2 pointer-events-none">
+                   <span className="text-[10px] font-mono text-muted-foreground px-2 py-1 rounded-full bg-background/80 backdrop-blur-sm border border-border/50">
+                     LIVE AGENT VISION
+                   </span>
+                </div>
+              </div>
+            )}
             
             {/* Show streaming thoughts if available */}
             {analysisFlow.analysisProgress.streamingTexts && Object.keys(analysisFlow.analysisProgress.streamingTexts).length > 0 && (

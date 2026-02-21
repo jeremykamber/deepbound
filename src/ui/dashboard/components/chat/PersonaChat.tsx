@@ -108,7 +108,7 @@ export function PersonaChat({ persona, onClose }: PersonaChatProps) {
           />
           <button 
             type="submit" 
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input || !input.trim()}
             className="absolute right-1.5 h-9 w-9 flex items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none"
           >
             <SendIcon className="w-4 h-4" />

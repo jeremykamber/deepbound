@@ -13,9 +13,10 @@ export interface PersonaProfilePanelProps extends React.HTMLAttributes<HTMLDivEl
     description: string
     traits?: string[]
   }
+  onChatClick?: () => void
 }
 
-export function PersonaProfilePanel({ persona, className, ...props }: PersonaProfilePanelProps) {
+export function PersonaProfilePanel({ persona, onChatClick, className, ...props }: PersonaProfilePanelProps) {
   return (
     <MinimalCard className={cn("flex flex-col gap-6", className)} hoverable {...props}>
       <div className="flex items-start gap-5">
@@ -50,6 +51,16 @@ export function PersonaProfilePanel({ persona, className, ...props }: PersonaPro
           </div>
         )}
       </div>
+
+      {onChatClick && (
+        <button
+          type="button"
+          onClick={onChatClick}
+          className="mt-auto w-full inline-flex h-10 items-center justify-center rounded-lg bg-secondary/50 px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary focus-visible:outline-none"
+        >
+          Chat with {persona.name.split(' ')[0]}
+        </button>
+      )}
     </MinimalCard>
   )
 }

@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Persona } from '@/domain/entities/Persona'
 import { useAnalysisFlow } from '@/ui/hooks/useAnalysisFlow'
 import { PersonaProfilePanel } from '@/components/custom/PersonaProfilePanel'
+import { PersonaChat } from "../chat/PersonaChat"
 
 interface AudienceViewProps {
   personas: Persona[]
@@ -10,12 +12,17 @@ interface AudienceViewProps {
 }
 
 export function AudienceView({ personas, analysisFlow }: AudienceViewProps) {
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null)
+  
+  const getPersona = (id: string) => personas.find(p => p.id === id)
+  const selectedPersona = selectedPersonaId ? getPersona(selectedPersonaId) : null
+
   return (
     <div className="flex flex-col gap-10 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-2 border-b border-border/40 pb-6">
         <h2 className="text-2xl font-bold tracking-tight">Generated Audience</h2>
         <p className="text-muted-foreground text-sm">
-          Review the personas synthesized from your target market description.
+          Review the personas synthesized from your target market description. You can also chat with them before running the simulation.
         </p>
       </div>
 
@@ -30,6 +37,7 @@ export function AudienceView({ personas, analysisFlow }: AudienceViewProps) {
               description: persona.backstory || `A ${persona.age}-year-old ${persona.occupation} interested in ${persona.interests?.join(', ')}.`,
               traits: persona.personalityTraits
             }} 
+            onChatClick={() => setSelectedPersonaId(persona.id)}
           />
         ))}
       </div>
@@ -48,6 +56,22 @@ export function AudienceView({ personas, analysisFlow }: AudienceViewProps) {
       {analysisFlow.error && (
         <div className="bg-destructive/10 text-destructive text-sm font-medium p-4 rounded-lg border border-destructive/20 mt-4">
           {analysisFlow.error}
+        </div>
+      )}
+
+      {/* Chat Slide-Out */}
+      {selectedPersona && (
+        <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <button 
+            type="button"
+            className="absolute inset-0 w-full h-full cursor-default focus:outline-none" 
+            onClick={() => setSelectedPersonaId(null)} 
+            aria-label="Close Chat Overlay"
+          />
+          <PersonaChat 
+            persona={selectedPersona} 
+            onClose={() => setSelectedPersonaId(null)} 
+          />
         </div>
       )}
     </div>

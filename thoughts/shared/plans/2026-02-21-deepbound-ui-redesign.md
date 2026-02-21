@@ -106,8 +106,8 @@ Create the building blocks for the new UI, customized from shadcn/ui.
 **Changes**: A highly refined, centered dialog used for the streaming stages (Analysis & Persona generation), emphasizing readability of the streaming steps.
 
 ### Success Criteria:
-- [ ] Automated: Linting passes for all new components.
-- [ ] Manual: Components are visually consistent, strictly adhering to the minimalist, high-whitespace directive.
+- [x] Automated: Linting passes for all new components.
+- [x] Manual: Components are visually consistent, strictly adhering to the minimalist, high-whitespace directive.
 
 ---
 

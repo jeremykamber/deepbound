@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function MarketingLayout({
   children,
@@ -27,6 +28,7 @@ export default function MarketingLayout({
             >
               Pricing
             </Link>
+            <ThemeToggle />
             <Link
               href="/dashboard"
               className="transition-colors text-foreground hover:text-primary font-semibold"

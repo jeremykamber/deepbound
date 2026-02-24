@@ -62,7 +62,7 @@ export function DashboardClient() {
         description="DeepBound is generating realistic personas based on your target profile."
         currentStep={
           personaFlow.personaProgress?.step === 'BRAINSTORMING_PERSONAS' ? 0 :
-          personaFlow.personaProgress?.step === 'GENERATING_BACKSTORIES' ? 1 : 2
+          personaFlow.personaProgress?.step === 'GENERATING_BACKSTORIES' ? 1 : 0
         }
         steps={[
           { title: "Analyzing Market", description: "Mapping demographics and psychographics" },
@@ -98,7 +98,7 @@ export function DashboardClient() {
         currentStep={
           analysisFlow.analysisProgress?.step === 'STARTING' || analysisFlow.analysisProgress?.step === 'OPENING_PAGE' ? 0 :
           analysisFlow.analysisProgress?.step === 'FINDING_PRICING' ? 1 : 
-          analysisFlow.analysisProgress?.step === 'THINKING' ? 2 : 3
+          analysisFlow.analysisProgress?.step === 'THINKING' ? 2 : 0
         }
         steps={[
           { title: "Initialization", description: "Loading target experience" },

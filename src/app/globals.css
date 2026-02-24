@@ -90,7 +90,6 @@
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.08);
   --ring: oklch(0.3 0 0);
-  
   --sidebar: oklch(0.1 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: var(--primary);

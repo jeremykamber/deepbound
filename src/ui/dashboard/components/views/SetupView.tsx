@@ -13,7 +13,11 @@ interface SetupViewProps {
 }
 
 export function SetupView({ personaFlow, analysisFlow, hasPersonas }: SetupViewProps) {
-  const loadMockData = () => {
+  const loadMockPersonas = () => {
+    personaFlow.setPersonas(MOCK_PERSONAS)
+  }
+
+  const loadMockAnalysis = () => {
     personaFlow.setPersonas(MOCK_PERSONAS)
     const mockAnalysesList = Object.values(MOCK_ANALYSES)
     analysisFlow.setAnalyses(mockAnalysesList)
@@ -21,13 +25,20 @@ export function SetupView({ personaFlow, analysisFlow, hasPersonas }: SetupViewP
 
   return (
     <div className="flex flex-col gap-16 max-w-4xl mx-auto w-full">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-4">
         <button
           type="button"
-          onClick={loadMockData}
+          onClick={loadMockPersonas}
           className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
         >
-          Load Demo Data
+          Load Demo Personas
+        </button>
+        <button
+          type="button"
+          onClick={loadMockAnalysis}
+          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+        >
+          Load Demo Analysis
         </button>
       </div>
       <div className="flex flex-col gap-4 text-center items-center">

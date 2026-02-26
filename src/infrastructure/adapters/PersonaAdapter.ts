@@ -2,6 +2,7 @@ import { Persona, PersonaSchema } from "@/domain/entities/Persona";
 import { LlmServiceImpl } from "./LlmServiceImpl";
 import { streamText, Output } from "ai";
 import { stripCodeFence } from "./llmUtils";
+import { GENDERLESS_NAMES } from "@/data/genderless_names";
 
 export class PersonaAdapter {
   constructor(private llmService: LlmServiceImpl) { }
@@ -78,7 +79,9 @@ Return ONLY valid JSON without explanatory text or markdown code blocks.`;
               (p.id as string) ??
               (p.uuid as string) ??
               `${((p.name as string) || "persona").toLowerCase().replace(/\s+/g, "-")}-${idx}`,
-            name: (p.name as string) ?? "Unknown",
+            // Use a curated list of genderless, culture-neutral names to avoid biased on-the-fly name generation.
+            // If the LLM returned a name explicitly, prefer it; otherwise pick from GENDERLESS_NAMES deterministically.
+            name: (p.name as string) ?? GENDERLESS_NAMES[idx % GENDERLESS_NAMES.length] ?? "Persona",
             age:
               typeof p.age === "number"
                 ? p.age
